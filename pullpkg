@@ -1,0 +1,17 @@
+#!/bin/bash -e
+
+if [ "x$1" = "xbuild" ]; then
+  pkgdir="/home/repo"
+  host="repopull@build.archlinuxcn.org"
+else
+  echo "no such configuration." >&2
+  exit 1
+fi
+
+dstdir="/data/archlinuxcn/repo/data/"
+
+date=$(ssh "$host" date "+%s")
+for arch in any i686 x86_64 arm armv6h armv7h aarch64; do
+  rsync -virtO --partial --bwlimit 200 --exclude='Put *' --include="*-${arch}.pkg.tar.*" --exclude='*' $host:$pkgdir/ $dstdir$arch
+done
+ssh "$host" /srv/removepkg "\"I'm sure\"'!'" "$date"

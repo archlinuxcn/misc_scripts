@@ -1,0 +1,112 @@
+#!/usr/bin/env python3
+
+import os
+from collections import defaultdict
+import glob
+import re
+import subprocess
+import sys
+
+import archpkg
+from archpkg import parse_arch_version as parse_version
+
+repo_path = '/data/archlinuxcn/repo/data'
+gitrepo_path = os.path.expanduser('~/archgitrepo')
+max_keep = 2
+
+class PkgNameInfo(archpkg.PkgNameInfo):
+  def __lt__(self, other):
+    # ignore arch mismatch
+    if self.name != other.name:
+      return NotImplemented
+    if self.version != other.version:
+      return parse_version(self.version) < parse_version(other.version)
+    return float(self.release) < float(other.release)
+
+re_package = re.compile(r'package(?:_(.+))?\s*\(')
+
+def get_all_managed_packages():
+  packages = set()
+  for pkg in glob.glob(os.path.join(gitrepo_path, '*', 'PKGBUILD')):
+
+    pkgfile = os.path.join(os.path.dirname(pkg), 'package.list')
+    if os.path.exists(pkgfile):
+      with open(pkgfile) as f:
+        packages.update(f.read().split())
+        continue
+
+    found = False
+    with open(pkg) as f:
+      for l in f:
+        l = l.strip()
+        m = re_package.match(l)
+        if m:
+          found = True
+          if m.group(1):
+            packages.add(m.group(1))
+          else:
+            packages.add(os.path.basename(os.path.dirname(pkg)))
+    if not found:
+      packages.add(os.path.basename(os.path.dirname(pkg)))
+  return packages
+
+def remove_pkg(path):
+  try:
+    os.unlink(path)
+  except FileNotFoundError:
+    pass
+  sig = path + '.sig'
+  if os.path.exists(sig):
+    try:
+      os.unlink(sig)
+    except FileNotFoundError:
+      pass
+
+def clean(path, all_packages):
+  pkgs = defaultdict(list)
+  for f in os.listdir(path):
+    if f.endswith('.pkg.tar.xz'):
+      pkg = PkgNameInfo.parseFilename(f)
+      if pkg.name.endswith('-debug'):
+        name = pkg.name[:-6]
+      else:
+        name = pkg.name
+      if name not in all_packages:
+        print('package %s removed, removing file %s.' % (pkg.name, f))
+        remove_pkg(os.path.join(path, f))
+      else:
+        pkgs[pkg.name].append((pkg, f))
+  for _, v in pkgs.items():
+    try:
+      v.sort()
+    except TypeError:
+      print('Bad things happen: %s' % v)
+      raise
+    for pkg, f in v[:-max_keep]:
+      print('remove old package file %s.' % f)
+      remove_pkg(os.path.join(path, f))
+
+def main():
+  os.chdir(gitrepo_path)
+  try:
+    error = False
+    out = subprocess.check_output(['git', 'pull'],
+                                  stderr = subprocess.STDOUT)
+  except subprocess.CalledProcessError as e:
+    out = e.output
+    error = True
+  for line in out.decode('utf-8', errors='backslashreplace').splitlines():
+    if 'Already up-to-date.' in line:
+      continue
+    print(line)
+  if error:
+    sys.exit(1)
+
+  all_packages = get_all_managed_packages()
+  for d in os.listdir(repo_path):
+    f = os.path.join(repo_path, d)
+    if os.path.isdir(f):
+      clean(f, all_packages)
+
+if __name__ == '__main__':
+  main()
