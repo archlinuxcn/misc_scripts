@@ -8,10 +8,15 @@ else
   exit 1
 fi
 
-dstdir="/data/archlinuxcn/repo/data/"
+dstdir="/data/archlinuxcn/repo/data"
+workdir="$dstdir.work"
 
 date=$(ssh "$host" date "+%s")
 for arch in any i686 x86_64 arm armv6h armv7h aarch64; do
-  rsync -virtO --partial --bwlimit 200 --exclude='Put *' --include="*-${arch}.pkg.tar.*" --exclude='*' $host:$pkgdir/ $dstdir$arch
+  mkdir -p "$workdir/$arch"
+  rsync -virtO --partial --bwlimit 10000 --exclude='Put *' --include="*-${arch}.pkg.tar.*" --exclude='*' $host:$pkgdir/ $workdir/$arch
+  mv $workdir/$arch/* $dstdir/$arch/
 done
+
+# shellcheck disable=SC2029
 ssh "$host" /srv/removepkg "\"I'm sure\"'!'" "$date"
