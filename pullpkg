@@ -15,7 +15,9 @@ date=$(ssh "$host" date "+%s")
 for arch in any i686 x86_64 arm armv6h armv7h aarch64; do
   mkdir -p "$workdir/$arch"
   rsync -virtO --partial --bwlimit 10000 --exclude='Put *' --include="*-${arch}.pkg.tar.*" --exclude='*' $host:$pkgdir/ $workdir/$arch
-  mv $workdir/$arch/* $dstdir/$arch/
+  if [[ -n $(ls $workdir/$arch) ]]; then
+    mv $workdir/$arch/* $dstdir/$arch/
+  fi
 done
 
 # shellcheck disable=SC2029
