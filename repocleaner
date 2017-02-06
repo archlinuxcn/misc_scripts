@@ -8,20 +8,10 @@ import subprocess
 import sys
 
 import archpkg
-from archpkg import parse_arch_version as parse_version
 
 repo_path = '/data/archlinuxcn/repo/data'
 gitrepo_path = os.path.expanduser('~/archgitrepo')
 max_keep = 2
-
-class PkgNameInfo(archpkg.PkgNameInfo):
-  def __lt__(self, other):
-    # ignore arch mismatch
-    if self.name != other.name:
-      return NotImplemented
-    if self.version != other.version:
-      return parse_version(self.version) < parse_version(other.version)
-    return float(self.release) < float(other.release)
 
 re_package = re.compile(r'package(?:_(.+))?\s*\(')
 
@@ -66,7 +56,7 @@ def clean(path, all_packages):
   pkgs = defaultdict(list)
   for f in os.listdir(path):
     if f.endswith('.pkg.tar.xz'):
-      pkg = PkgNameInfo.parseFilename(f)
+      pkg = archpkg.PkgNameInfo.parseFilename(f)
       if pkg.name.endswith('-debug'):
         name = pkg.name[:-6]
       else:
@@ -78,7 +68,7 @@ def clean(path, all_packages):
         pkgs[pkg.name].append((pkg, f))
   for _, v in pkgs.items():
     try:
-      v.sort()
+      v.sort(key=lambda x: os.path.getmtime(os.path.join(path, x[1])))
     except TypeError:
       print('Bad things happen: %s' % v)
       raise
