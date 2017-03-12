@@ -17,7 +17,7 @@ Usage: %s [build_prefix [arch]]
 Clean up chroot building directory in /var/lib/archbuild/ with specified
 <build_prefix> and <arch>.
 
-If <build_prefix> and <arch> are not specified, clean up all copys.
+If <build_prefix> and <arch> are not specified, clean up all copies.
 ''' % argv[0])
 
 def get_prefixes():
