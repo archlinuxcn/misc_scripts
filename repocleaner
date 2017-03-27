@@ -66,8 +66,11 @@ def clean(path, all_packages):
         remove_pkg(os.path.join(path, f))
       else:
         pkgs[pkg.name].append((pkg, f))
-  for _, v in pkgs.items():
+
+  for v in pkgs.values():
     try:
+      # some files may have been deleted already
+      v = [x for x in v if os.path.exists(os.path.join(path, x[1]))]
       v.sort(key=lambda x: os.path.getmtime(os.path.join(path, x[1])))
     except TypeError:
       print('Bad things happen: %s' % v)
