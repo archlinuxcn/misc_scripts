@@ -9,7 +9,7 @@ import sys
 
 import archpkg
 
-repo_path = '/data/archlinuxcn/repo/data'
+repo_path = '/data/repo'
 gitrepo_path = os.path.expanduser('~/archgitrepo')
 max_keep = 2
 
