@@ -46,9 +46,7 @@ def git_push():
 def guess_pkgname(line, candidates):
   regex = '|'.join(re.escape(x) for x in candidates)
   regex = f'\\b{regex}\\b'
-  m = re.search(regex, line, re.ASCII)
-  if m:
-    return m.group()
+  return re.findall(regex, line, re.ASCII)
 
 def main():
   token = os.environ['GITHUB_TOKEN']
@@ -74,8 +72,8 @@ This request has been waiting for too long, closing.''')
 
     for issue in issues:
       print(f'Removing orphaned {issue}')
-      name = guess_pkgname(issue.title,  package_list)
-      if not name:
+      names = guess_pkgname(issue.title,  package_list)
+      if not names:
         issue.comment('''\
 lilac 无法从标题猜测涉及的软件包名，请手动处理。
 
@@ -85,13 +83,15 @@ lilac can't guess the relevant package name from the title, please handle manual
 
       with file_lock(LILAC_LOCK):
         subprocess.check_output(['git', 'pull'], cwd=REPO)
-        shutil.rmtree(os.path.join(REPO, name))
-        subprocess.check_call(['git', 'add', name], cwd=REPO)
 
-        remove_ini_section(name, os.path.join(REPO, 'nvchecker.ini'))
-        subprocess.check_call(['git', 'add', 'nvchecker.ini'], cwd=REPO)
+        for name in names:
+          shutil.rmtree(os.path.join(REPO, name))
+          subprocess.check_call(['git', 'add', name], cwd=REPO)
 
-        msg = f'{name}: orphaned for a long time, removing. closes #{issue.number}'
+          remove_ini_section(name, os.path.join(REPO, 'nvchecker.ini'))
+          subprocess.check_call(['git', 'add', 'nvchecker.ini'], cwd=REPO)
+
+        msg = f'{names}: orphaned for a long time, removing. closes #{issue.number}'
         subprocess.check_output(['git', 'commit', '-m', msg], cwd=REPO)
         git_push()
 
