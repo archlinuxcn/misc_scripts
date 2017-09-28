@@ -91,7 +91,7 @@ lilac can't guess the relevant package name from the title, please handle manual
 
         subprocess.check_call(['git', 'add', 'nvchecker.ini'], cwd=REPO)
 
-        msg = f'{names}: orphaned for a long time, removing. closes #{issue.number}'
+        msg = f'{", ".join(names)}: orphaned for a long time, removing. closes #{issue.number}'
         subprocess.check_output(['git', 'commit', '-m', msg], cwd=REPO)
         git_push()
 
