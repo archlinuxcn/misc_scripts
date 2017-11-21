@@ -55,6 +55,9 @@ def remove_pkg(path):
 def clean(path, all_packages):
   pkgs = defaultdict(list)
   for f in os.listdir(path):
+    if f[0] == '.':
+      continue
+
     if f.endswith('.pkg.tar.xz'):
       pkg = archpkg.PkgNameInfo.parseFilename(f)
       if pkg.name.endswith('-debug'):
