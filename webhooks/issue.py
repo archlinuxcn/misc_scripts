@@ -4,7 +4,7 @@ import logging
 from expiringdict import ExpiringDict
 from agithub import Issue
 
-from .git import get_maintainer
+from . import git
 from . import config
 
 logger = logging.getLogger(__name__)
@@ -83,10 +83,11 @@ Lilac 无法解析此问题报告。你按照模板填写了吗？''')
   if packages:
     if find_assignees:
       _email_to_login_cache.expire()
+      await git.pull_repo(config.REPODIR, config.REPO)
 
       for pkg in packages:
         try:
-          maintainer = await get_maintainer(
+          maintainer = await git.get_maintainer(
             config.REPODIR, pkg, config.MYMAIL)
         except LookupError:
           logger.warn('maintainer not found for %s', pkg)
