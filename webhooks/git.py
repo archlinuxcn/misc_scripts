@@ -13,6 +13,7 @@ async def get_maintainer(repodir, package, exclude):
     line = await process.stdout.readline()
     if not line:
       raise LookupError(f'no maintainer found for {package}')
+    line = line.decode()
     commit, author = line.rstrip().split(None, 1)
     if exclude not in author:
       process.terminate()
