@@ -5,11 +5,12 @@ import sys
 import os
 import subprocess
 import shutil
-import re
 import fileinput
 
 from github import GitHub
 from myutils import file_lock
+
+from webhooks.issue import parse_issue_text
 
 REQUEST_WAITING_TIME = datetime.timedelta(days=30)
 ORPHANING_WAITING_TIME = datetime.timedelta(days=14)
@@ -43,11 +44,6 @@ def git_push():
         sys.stdout.write(e.output)
         raise
 
-def guess_pkgname(line, candidates):
-  regex = '|'.join(re.escape(x) for x in candidates)
-  regex = f'\\b{regex}\\b'
-  return re.findall(regex, line, re.ASCII)
-
 def main():
   token = os.environ['GITHUB_TOKEN']
   gh = GitHub(token)
@@ -67,35 +63,33 @@ This request has been waiting for too long, closing.''')
   issues = [issue for issue in gh.get_repo_issues(repo, labels='orphaning')
             if now - issue.updated_at > ORPHANING_WAITING_TIME
             and 'seen-by-lilac' not in issue.labels]
-  if issues:
-    package_list = [x.name for x in os.scandir(REPO) if x.name[0] != '.' and x.is_dir()]
 
-    for issue in issues:
-      print(f'Removing orphaned {issue}')
-      names = guess_pkgname(issue.title,  package_list)
-      if not names:
-        issue.comment('''\
-lilac 无法从标题猜测涉及的软件包名，请手动处理。
-
-lilac can't guess the relevant package name from the title, please handle manually.''')
-        issue.add_labels(['seen-by-lilac'])
-        continue
-
-      with file_lock(LILAC_LOCK):
-        subprocess.check_output(['git', 'pull'], cwd=REPO)
-
-        for name in names:
-          shutil.rmtree(os.path.join(REPO, name))
-          subprocess.check_call(['git', 'add', name], cwd=REPO)
-          remove_ini_section(name, os.path.join(REPO, 'nvchecker.ini'))
-
-        subprocess.check_call(['git', 'add', 'nvchecker.ini'], cwd=REPO)
-
-        msg = f'{", ".join(names)}: orphaned for a long time, removing. closes #{issue.number}'
-        subprocess.check_output(['git', 'commit', '-m', msg], cwd=REPO)
-        git_push()
-
+  for issue in issues:
+    print(f'Removing orphaned {issue}')
+    _issuetype, packages = parse_issue_text(issue.body)
+    if not packages:
       issue.comment('''\
+lilac 无法解析出涉及的软件包名，请手动处理。
+
+lilac can't parse out the relevant package names, please handle manually.''')
+      issue.add_labels(['seen-by-lilac'])
+      continue
+
+    with file_lock(LILAC_LOCK):
+      subprocess.check_output(['git', 'pull'], cwd=REPO)
+
+      for name in packages:
+        shutil.rmtree(os.path.join(REPO, name))
+        subprocess.check_call(['git', 'add', name], cwd=REPO)
+        remove_ini_section(name, os.path.join(REPO, 'nvchecker.ini'))
+
+      subprocess.check_call(['git', 'add', 'nvchecker.ini'], cwd=REPO)
+
+      msg = f'{", ".join(packages)}: orphaned for a long time, removing. closes #{issue.number}'
+      subprocess.check_output(['git', 'commit', '-m', msg], cwd=REPO)
+      git_push()
+
+    issue.comment('''\
 已自动删除。
 
 Automatically removed.''')
