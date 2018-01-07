@@ -4,7 +4,7 @@ import subprocess
 
 async def get_maintainer(repodir, package, exclude):
   process = await asyncio.create_subprocess_exec(
-    "git", "log", "-1", "--format=%H %an <%ae>", "--", package,
+    "git", "log", "--format=%H %an <%ae>", "--", package,
     cwd = repodir,
     stdout = subprocess.PIPE,
   )
