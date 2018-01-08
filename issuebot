@@ -28,6 +28,8 @@ def remove_ini_section(name, filename):
         skipping = True
       elif skipping and line.startswith('['):
         skipping = False
+      elif skipping and line.startswith('#') and '{{{' in line:
+        skipping = False
 
       if not skipping:
         print(line.rstrip('\n'))
