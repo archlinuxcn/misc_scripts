@@ -6,6 +6,7 @@ from agithub import Issue
 
 from . import git
 from . import config
+from . import files
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,7 @@ Lilac 无法解析此问题报告。你按照模板填写了吗？''')
 
   find_assignees = True
   assignees = []
+  comment = None
   if issuetype == IssueType.PackageRequest:
     find_assignees = False
     labels = ['package-request']
@@ -102,9 +104,23 @@ Lilac 无法解析此问题报告。你按照模板填写了吗？''')
 
         assignees.append(login)
 
+      if issuetype == IssueType.OutOfDate:
+        logs = await files.find_build_log(
+          config.REPODIR, config.BUILDLOG, packages,
+        )
+        logs = [x for x in logs if x]
+        logs = '\n'.join(sorted(logs.values()))
+        comment = f'''build log for auto building out-of-date packages:
+```
+{logs}
+```
+'''
+
   if labels:
     await issue.add_labels(labels)
   if assignees:
     await issue.assign(assignees)
+  if comment:
+    await issue.comment(comment)
 
 _email_to_login_cache = ExpiringDict(86400)
