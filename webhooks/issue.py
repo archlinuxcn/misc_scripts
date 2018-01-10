@@ -59,7 +59,6 @@ async def process_issue(gh, issue):
   issuetype, packages = parse_issue_text(body)
   if issuetype is None or (not packages and issuetype in [
     IssueType.OutOfDate, IssueType.Orphaning, IssueType.Official]):
-    await issue.add_labels(['invalid', 'seen-by-lilac'])
     await issue.comment('''\
 Lilac cannot parse this issue. Did you follow the template?
 
