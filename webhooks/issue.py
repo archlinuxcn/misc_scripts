@@ -108,8 +108,8 @@ Lilac 无法解析此问题报告。你按照模板填写了吗？''')
         logs = await files.find_build_log(
           config.REPODIR, config.BUILDLOG, packages,
         )
-        logs = [x for x in logs if x]
-        logs = '\n'.join(sorted(logs.values()))
+        logs = [line for name, line in logs.items() if name in packages]
+        logs = '\n'.join(sorted(logs))
         comment = f'''build log for auto building out-of-date packages:
 ```
 {logs}
