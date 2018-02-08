@@ -105,12 +105,16 @@ Lilac 无法解析此问题报告。你按照模板填写了吗？''')
         assignees.append(login)
 
       if issuetype == IssueType.OutOfDate and packages:
-        logs = await files.find_build_log(
-          config.REPODIR, config.BUILDLOG, packages,
-        )
-        logs = [line for name, line in logs.items() if name in packages]
-        logs = '\n'.join(sorted(logs))
-        comment = f'''build log for auto building out-of-date packages:
+        try:
+          logs = await files.find_build_log(
+            config.REPODIR, config.BUILDLOG, packages,
+          )
+        except LookupError:
+          pass
+        else:
+          logs = [line for name, line in logs.items() if name in packages]
+          logs = '\n'.join(sorted(logs))
+          comment = f'''build log for auto building out-of-date packages:
 ```
 {logs}
 ```

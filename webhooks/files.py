@@ -16,7 +16,9 @@ async def find_build_log(repodir, buildlog, packages):
   )
   out, _ = await process.communicate()
   res = await process.wait()
-  if res != 0:
+  if res == 1: # not found:
+    raise LookupError
+  elif res != 0:
     raise subprocess.CalledProcessError(res, 'grep_buildlog')
 
   out = out.decode('utf-8').splitlines()
