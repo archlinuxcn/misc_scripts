@@ -1,3 +1,4 @@
+import re
 from enum import Enum
 import logging
 
@@ -22,6 +23,8 @@ _TypeDescMap = {
   '其它': IssueType.Other,
 }
 
+_PkgPattern = re.compile(r'[\w-]+')
+
 def parse_issue_text(text):
   st = _ParseState.init
   skipping = False
@@ -32,24 +35,30 @@ def parse_issue_text(text):
   for line in text.splitlines():
     if line.endswith('-->'):
       skipping = False
+      continue
     elif line.startswith('<!--'):
       skipping = True
 
-    if skipping:
+    if skipping or not line:
       continue
     elif line.startswith('### 问题类型 '):
       st = _ParseState.issuetype
+      continue
     elif line.startswith('### 受影响的软件包 '):
       st = _ParseState.packages
+      continue
     elif line.startswith('----'):
       break
 
-    if line.startswith('*'):
-      if st == _ParseState.issuetype:
-        firstword = line[1:].split(None, 1)[0]
-        issuetype = _TypeDescMap.get(firstword)
-      elif st == _ParseState.packages:
-        firstword = line[1:].split(None, 1)[0]
+    if st == _ParseState.issuetype:
+      for key in _TypeDescMap.keys():
+        if key in line:
+          issuetype = _TypeDescMap.get(key)
+          break
+    elif st == _ParseState.packages:
+      firstword = _PkgPattern.search(line)
+      if firstword:
+        firstword = firstword.group()
         packages.append(firstword)
 
   return issuetype, packages
