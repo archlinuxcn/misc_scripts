@@ -11,7 +11,7 @@ from . import files
 
 logger = logging.getLogger(__name__)
 
-IssueType = Enum('IssueType', 'PackageRequest OutOfDate Orphaning Official Other')
+IssueType = Enum('IssueType', 'PackageRequest OutOfDate Orphaning Official Error Other')
 
 _ParseState = Enum('_ParseState', 'init issuetype packages')
 
@@ -20,6 +20,7 @@ _TypeDescMap = {
   '过期软件包': IssueType.OutOfDate,
   '弃置软件包': IssueType.Orphaning,
   '软件包被官方仓库收录': IssueType.Official,
+  '打包错误': IssueType.Error,
   '其它': IssueType.Other,
 }
 
