@@ -129,13 +129,10 @@ Lilac 无法解析此问题报告。你按照模板填写了吗？''')
 {logs}
 ```
 '''
-        import configparser
-        aur_item = '* [{}](https://aur.archlinux.org/packages/{})'
-        nvconfig = configparser.ConfigParser(dict_type=dict, allow_no_value=True)
-        nvconfig.read_file(open(config.REPODIR + '/nvchecker.ini', 'r'))
-        aur_pkgs = filter(lambda r: r[1] is not None,
-                          ((pkg, nvconfig.get(pkg, 'aur', fallback=None)) for pkg in packages))
-        aur_info = '\n'.join((aur_item.format(pkg, aur or pkg) for pkg, aur in aur_pkgs))
+        aur_pkgs, aur_ups = aur.filter_aur(packages)
+        aur_ups = tuple(aur_ups)
+        aur_versions = aur.get_version(aur_ups)
+        aur_info = '\n'.join((aur.aur_item.format(pkg, aur) for pkg, aur in zip(aur_pkgs, aur_ups)))
         if aur_info:
           comment += f'''
 The following packages track AUR. Flag out-of-date on AUR first.
