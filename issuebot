@@ -109,6 +109,7 @@ Automatically removed.''')
 已被删除。
 
 Already removed.''')
+      issue.close()
 
 if __name__ == '__main__':
   main()
