@@ -6,7 +6,7 @@ import subprocess
 import contextlib
 import logging
 import tarfile
-from fnmatch import fnmatch
+import re
 
 from cmdutils import so_depends
 
@@ -16,8 +16,14 @@ def path_suspicious(path):
   basename = os.path.basename(path)
   return '/bin/' in path or '.so' in basename
 
-def check_dependency(dir, lib):
+def walkdir(dir):
   for entry in os.scandir(dir):
+    yield entry
+    if not entry.is_symlink() and entry.is_dir():
+      yield from walkdir(entry.path)
+
+def check_dependency(dir, lib_re):
+  for entry in walkdir(dir):
     if not path_suspicious(entry.path):
       continue
 
@@ -26,12 +32,15 @@ def check_dependency(dir, lib):
 
     try:
       libs = so_depends(entry.path)
+      logger.debug('so_depends %s: %s', entry.path, libs)
     except subprocess.CalledProcessError:
       continue
 
     for l in libs:
-      if fnmatch(l, lib):
-        return entry.path
+      if lib_re.search(l):
+        return entry.path, l
+
+  return None, None
 
 @contextlib.contextmanager
 def extract_package(pkg):
@@ -40,16 +49,18 @@ def extract_package(pkg):
     subprocess.check_call(['bsdtar', 'xf', pkg, '--no-fflags', '-C', d])
     yield d
 
-def check_package(pkg, lib):
+def check_package(pkg, lib_re):
   with extract_package(pkg) as d:
     logger.info('checking...')
-    r = check_dependency(d, lib)
+    r, lib = check_dependency(d, lib_re)
     if r:
       r = os.path.relpath(r, d)
-      logger.info('%s depends on %s: %s', pkg, lib, r)
-      return r
+      logger.warning('%s depends on %s: %s', pkg, lib, r)
+      return r, lib
 
-def main(db, lib):
+  return None, None
+
+def main(db, lib_re):
   ret = []
   dir = os.path.dirname(db)
 
@@ -82,12 +93,12 @@ def main(db, lib):
             break
 
       if filename and files_match:
-        r = check_package(os.path.join(dir, filename), lib)
+        r, lib = check_package(os.path.join(dir, filename), lib_re)
         if r:
-          ret.append((name, r))
+          ret.append((name, r, lib))
 
-  for name, file in ret:
-    print('%s: %s', name, file)
+  for name, file, lib in ret:
+    print('%s: %s (%s)' % (name, file, lib))
 
 if __name__ == '__main__':
   from nicelogger import enable_pretty_logging
@@ -100,7 +111,7 @@ if __name__ == '__main__':
   parser.add_argument('pkgdb',
                       help='the package database')
   parser.add_argument('libname',
-                      help='the library filename pattern to check for')
+                      help='the library filename regex to match')
   args = parser.parse_args()
 
-  main(args.pkgdb, args.libname)
+  main(args.pkgdb, re.compile(args.libname))
