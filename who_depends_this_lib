@@ -1,0 +1,106 @@
+#!/usr/bin/env python3
+
+import os
+import tempfile
+import subprocess
+import contextlib
+import logging
+import tarfile
+from fnmatch import fnmatch
+
+from cmdutils import so_depends
+
+logger = logging.getLogger(__name__)
+
+def path_suspicious(path):
+  basename = os.path.basename(path)
+  return '/bin/' in path or '.so' in basename
+
+def check_dependency(dir, lib):
+  for entry in os.scandir(dir):
+    if not path_suspicious(entry.path):
+      continue
+
+    if not entry.is_file() or entry.is_symlink():
+      continue
+
+    try:
+      libs = so_depends(entry.path)
+    except subprocess.CalledProcessError:
+      continue
+
+    for l in libs:
+      if fnmatch(l, lib):
+        return entry.path
+
+@contextlib.contextmanager
+def extract_package(pkg):
+  logger.info('extracting %s...', pkg)
+  with tempfile.TemporaryDirectory(prefix='depcheck-') as d:
+    subprocess.check_call(['bsdtar', 'xf', pkg, '--no-fflags', '-C', d])
+    yield d
+
+def check_package(pkg, lib):
+  with extract_package(pkg) as d:
+    logger.info('checking...')
+    r = check_dependency(d, lib)
+    if r:
+      r = os.path.relpath(r, d)
+      logger.info('%s depends on %s: %s', pkg, lib, r)
+      return r
+
+def main(db, lib):
+  ret = []
+  dir = os.path.dirname(db)
+
+  with tarfile.open(db) as tar:
+    for tarinfo in tar:
+      if tarinfo.isdir():
+        filename = files_match = None
+        name = tarinfo.name.split('/', 1)[0]
+        continue
+
+      if tarinfo.name.endswith('/desc'):
+        f = tar.extractfile(tarinfo)
+        data = f.read().decode()
+
+        it = iter(data.splitlines())
+        while True:
+          l = next(it)
+          if l == '%FILENAME%':
+            filename = next(it)
+            break
+
+      if tarinfo.name.endswith('/files'):
+        f = tar.extractfile(tarinfo)
+        data = f.read().decode()
+        it = iter(data.splitlines())
+        next(it)
+        for path in it:
+          if path_suspicious(path):
+            files_match = True
+            break
+
+      if filename and files_match:
+        r = check_package(os.path.join(dir, filename), lib)
+        if r:
+          ret.append((name, r))
+
+  for name, file in ret:
+    print('%s: %s', name, file)
+
+if __name__ == '__main__':
+  from nicelogger import enable_pretty_logging
+  enable_pretty_logging('INFO')
+
+  import argparse
+
+  parser = argparse.ArgumentParser(
+    description='find out what Arch packages need a particular library')
+  parser.add_argument('pkgdb',
+                      help='the package database')
+  parser.add_argument('libname',
+                      help='the library filename pattern to check for')
+  args = parser.parse_args()
+
+  main(args.pkgdb, args.libname)
