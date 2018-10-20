@@ -20,8 +20,12 @@ const LILAC_REPO: &str = "~lilydjwg/archgitrepo";
 const USER: &str = "lilydjwg";
 
 fn flock<P: AsRef<Path>>(lockfile: P) -> Result<(), Error> {
-  let f = File::open(lockfile)?;
-  nix::fcntl::flock(f.into_raw_fd(), nix::fcntl::FlockArg::LockExclusive)?;
+  let f = File::open(lockfile.as_ref())?;
+  let fd = f.into_raw_fd();
+  if let Err(_) = nix::fcntl::flock(fd, nix::fcntl::FlockArg::LockExclusiveNonblock) {
+    eprintln!("Waiting for lock file {} to release...", lockfile.as_ref().display());
+    nix::fcntl::flock(fd, nix::fcntl::FlockArg::LockExclusive)?;
+  }
   Ok(())
 }
 
@@ -51,7 +55,9 @@ fn main() -> Result<(),Error> {
   let pwd = pwd::Passwd::from_name(USER)?.unwrap();
   nix::unistd::setuid(nix::unistd::Uid::from_raw(pwd.uid))?;
 
-  flock(&expanduser(LILAC_LOCK)?)?;
+  if opt.real {
+    flock(&expanduser(LILAC_LOCK)?)?;
+  }
   let mut path = expanduser(LILAC_REPO)?;
   path.push(&opt.pkgname);
 
