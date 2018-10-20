@@ -1,0 +1,19 @@
+[package]
+name = "cleanup-package-files"
+version = "0.1.0"
+authors = ["lilydjwg <lilydjwg@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+nix = "*"
+failure = "*"
+expanduser = "*"
+pwd = "*"
+
+[dependencies.structopt]
+version = "*"
+default-features = false
+features = []
+
+[profile.release]
+lto = true
