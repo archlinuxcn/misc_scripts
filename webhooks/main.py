@@ -13,6 +13,7 @@ from expiringdict import ExpiringDict
 from . import issue
 from . import lilac
 from . import config
+from . import git
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +89,7 @@ class MaintainersHandler:
     ret = []
 
     self._cache.expire()
+    await git.may_pull_repo(config.REPODIR, config.REPO)
 
     for pkgbase in packages:
       try:
