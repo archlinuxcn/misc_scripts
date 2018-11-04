@@ -3,7 +3,7 @@ import asyncio
 import subprocess
 import time
 
-_last_pull = None
+_last_pull: float = 0
 
 async def may_pull_repo(repodir: os.PathLike, repo: str) -> None:
   if _last_pull + 600 > time.time():
