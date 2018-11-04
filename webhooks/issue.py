@@ -1,13 +1,15 @@
 import re
 from enum import Enum
 import logging
+from typing import Dict, Any
 
 from expiringdict import ExpiringDict
-from agithub import Issue
+from agithub import Issue, GitHub
 
 from . import git
 from . import config
 from . import files
+from . import lilac
 
 logger = logging.getLogger(__name__)
 
@@ -64,8 +66,8 @@ def parse_issue_text(text):
 
   return issuetype, packages
 
-async def process_issue(gh, issue):
-  issue = Issue(issue, gh)
+async def process_issue(gh: GitHub, issue_dict: Dict[str, Any]) -> None:
+  issue = Issue(issue_dict, gh)
   body = issue.body
   issuetype, packages = parse_issue_text(body)
   if issuetype is None or (not packages and issuetype in [
@@ -77,7 +79,7 @@ Lilac 无法解析此问题报告。你按照模板填写了吗？''')
     return
 
   find_assignees = True
-  assignees = []
+  assignees = set()
   comment = None
   if issuetype == IssueType.PackageRequest:
     find_assignees = False
@@ -87,9 +89,9 @@ Lilac 无法解析此问题报告。你按照模板填写了吗？''')
   elif issuetype == IssueType.Orphaning:
     labels = ['orphaning']
     find_assignees = False
-    assignees.append('lilacbot')
+    assignees.add('lilacbot')
   else:
-    labels = None
+    labels = []
 
   if packages:
     if find_assignees:
@@ -97,22 +99,10 @@ Lilac 无法解析此问题报告。你按照模板填写了吗？''')
       await git.pull_repo(config.REPODIR, config.REPO)
 
       for pkg in packages:
-        try:
-          maintainer = await git.get_maintainer(
-            config.REPODIR, pkg, config.MYMAIL)
-        except LookupError:
-          logger.warn('maintainer not found for %s', pkg)
-          continue
+        maintainers = await lilac.find_maintainers(REPO, pkg)
 
-        login = _email_to_login_cache.get(maintainer)
-        if not login:
-          try:
-            login = await gh.find_login_by_email(maintainer)
-          except LookupError:
-            logger.warn('maintainer with email %s not found on GitHub', maintainer)
-            continue
-
-        assignees.append(login)
+        assignees.update(x.github for x in maintainers
+                         if x.github is not None)
 
       if issuetype == IssueType.OutOfDate and packages:
         try:
@@ -138,3 +128,4 @@ Lilac 无法解析此问题报告。你按照模板填写了吗？''')
     await issue.comment(comment)
 
 _email_to_login_cache = ExpiringDict(86400)
+REPO = lilac.get_repo(config.LILAC_INI)
