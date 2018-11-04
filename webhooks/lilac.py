@@ -15,7 +15,6 @@ def get_repo(inifile: os.PathLike) -> Repo:
   config.read(inifile)
   return Repo(config)
 
-# FIXME: load_lilac and find_maintainers may chdir
 def _get_mod(pkgbase: str) -> LilacMod:
   with load_lilac(REPODIR / pkgbase) as m:
     return m
