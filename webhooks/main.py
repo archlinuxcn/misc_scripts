@@ -101,7 +101,7 @@ class MaintainersHandler:
 
 def setup_app(app, secret, token):
   app.router.add_post('/lilac/issue', IssueHandler(secret, token))
-  app.router.add_post('/lilac/find_maintainers', MaintainersHandler())
+  app.router.add_get('/lilac/find_maintainers', MaintainersHandler())
 
 def main():
   import argparse
