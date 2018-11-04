@@ -3,7 +3,6 @@ from enum import Enum
 import logging
 from typing import Dict, Any
 
-from expiringdict import ExpiringDict
 from agithub import Issue, GitHub
 
 from . import git
@@ -95,7 +94,6 @@ Lilac 无法解析此问题报告。你按照模板填写了吗？''')
 
   if packages:
     if find_assignees:
-      _email_to_login_cache.expire()
       await git.pull_repo(config.REPODIR, config.REPO)
 
       for pkg in packages:
@@ -127,5 +125,4 @@ Lilac 无法解析此问题报告。你按照模板填写了吗？''')
   if comment:
     await issue.comment(comment)
 
-_email_to_login_cache = ExpiringDict(86400)
 REPO = lilac.get_repo(config.LILAC_INI)
