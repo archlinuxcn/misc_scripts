@@ -66,6 +66,7 @@ class MaintainersHandler:
 
   async def get_single_result(self, pkgbase):
     if pkgbase in self._cache:
+      logging.info('maintainers cache hit for pkgbase %s', pkgbase)
       return self._cache[pkgbase]
 
     maintainers = await lilac.find_maintainers(self.repo, pkgbase)
