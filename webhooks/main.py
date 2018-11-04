@@ -90,11 +90,17 @@ class MaintainersHandler:
     self._cache.expire()
 
     for pkgbase in packages:
-      ms = await self.get_single_result(pkgbase)
-      ret.append({
-        'pkgbase': pkgbase,
-        'maintainers': ms,
-      })
+      try:
+        ms = await self.get_single_result(pkgbase)
+        ret.append({
+          'pkgbase': pkgbase,
+          'maintainers': ms,
+        })
+      except FileNotFoundError:
+        ret.append({
+          'pkgbase': pkgbase,
+          'error': 'not found',
+        })
 
     res = web.json_response({'result': ret})
     res.headers['Cache-Control'] = 'public, max-age=60'
