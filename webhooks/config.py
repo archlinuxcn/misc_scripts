@@ -1,6 +1,6 @@
-import os
+from pathlib import Path
 
 REPO = 'git@github.com:archlinuxcn/repo.git'
-REPODIR = os.path.expanduser('~/archgitrepo-webhook')
 MYMAIL = 'lilac@build.archlinuxcn.org'
-BUILDLOG = os.path.expanduser('~/.lilac/build.log')
+REPODIR = Path('~/archgitrepo-webhook').expanduser()
+BUILDLOG = Path('~/.lilac/build.log').expanduser()
