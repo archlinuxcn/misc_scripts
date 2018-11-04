@@ -13,7 +13,6 @@ from expiringdict import ExpiringDict
 from . import issue
 from . import lilac
 from . import config
-from . import git
 
 logger = logging.getLogger(__name__)
 
@@ -81,11 +80,7 @@ class MaintainersHandler:
 
   async def __call__(self, request: web.Request) -> web.Response:
     q = request.query.get('q')
-    if q == '__all__':
-      await git.pull_repo(config.REPODIR, config.REPO)
-      packages = [x.name for x in config.REPODIR.iterdir()
-                  if x.name[0] != '.' and x.is_dir()]
-    elif q:
+    if q:
       packages = q.split(',')
     else:
       packages = []
@@ -108,10 +103,7 @@ class MaintainersHandler:
         })
 
     res = web.json_response({'result': ret})
-    if q == '__all__':
-      res.headers['Cache-Control'] = 'public, max-age=600'
-    else:
-      res.headers['Cache-Control'] = 'public, max-age=60'
+    res.headers['Cache-Control'] = 'public, max-age=60'
     return res
 
 def setup_app(app, secret, token):
