@@ -14,6 +14,7 @@ import yamlutils
 repo_path: Path = Path('/data/repo')
 gitrepo_path: Path = Path('~/archgitrepo').expanduser()
 max_keep: int = 2
+DRY_RUN: bool = False
 
 re_package = re.compile(r'package(?:_(.+))?\s*\(')
 
@@ -51,6 +52,9 @@ def get_all_managed_packages() -> Set[str]:
   return packages
 
 def remove_pkg(path: Path) -> None:
+  if DRY_RUN:
+    return
+
   try:
     path.unlink()
   except FileNotFoundError:
@@ -114,4 +118,7 @@ def main() -> None:
       clean(d, all_packages)
 
 if __name__ == '__main__':
+  if sys.argv[1] == '-n':
+    DRY_RUN = True
+
   main()
