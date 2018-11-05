@@ -26,8 +26,10 @@ def get_all_managed_packages() -> Set[str]:
     if lilacyaml.exists():
       with lilacyaml.open() as f:
         y = yamlutils.load(f)
-      packages.update(y.get('output_packages', ()))
-      continue
+      new = y.get('output_packages', ())
+      if new:
+        packages.update()
+        continue
 
     pkgfile = pkg.with_name('package.list')
     if pkgfile.exists():
