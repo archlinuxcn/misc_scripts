@@ -28,7 +28,7 @@ def get_all_managed_packages() -> Set[str]:
         y = yamlutils.load(f)
       new = y.get('output_packages', ())
       if new:
-        packages.update()
+        packages.update(new)
         continue
 
     pkgfile = pkg.with_name('package.list')
