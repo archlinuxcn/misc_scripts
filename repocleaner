@@ -61,7 +61,7 @@ def remove_pkg(path: Path) -> None:
     path.unlink()
   except FileNotFoundError:
     pass
-  sig = path.with_suffix('.sig')
+  sig = path.with_name(path.name + '.sig')
   if sig.exists():
     try:
       sig.unlink()
@@ -120,7 +120,11 @@ def main() -> None:
       clean(d, all_packages)
 
 if __name__ == '__main__':
-  if sys.argv[1] == '-n':
+  if len(sys.argv) == 1:
+    pass
+  elif len(sys.argv) == 2 and sys.argv[1] == '-n':
     DRY_RUN = True
+  else:
+    sys.exit('bad argument')
 
   main()
