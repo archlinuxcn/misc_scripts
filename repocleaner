@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Set, List, Dict, Tuple
 
 import archpkg
-import yamlutils
 
 repo_path: Path = Path('/data/repo')
 gitrepo_path: Path = Path('~/archgitrepo').expanduser()
@@ -21,15 +20,6 @@ re_package = re.compile(r'package(?:_(.+))?\s*\(')
 def get_all_managed_packages() -> Set[str]:
   packages: Set[str] = set()
   for pkg in gitrepo_path.glob('*/PKGBUILD'):
-
-    lilacyaml = pkg.with_name('lilac.yaml')
-    if lilacyaml.exists():
-      with lilacyaml.open() as f:
-        y = yamlutils.load(f)
-      new = y.get('output_packages', ())
-      if new:
-        packages.update(new)
-        continue
 
     pkgfile = pkg.with_name('package.list')
     if pkgfile.exists():
