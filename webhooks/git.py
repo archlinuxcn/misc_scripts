@@ -20,7 +20,7 @@ async def pull_repo(repodir: os.PathLike, repo: str) -> None:
     res = await process.wait()
   else:
     process = await asyncio.create_subprocess_exec(
-      'git', 'clone', repo, repodir,
+      'git', 'clone', repo, str(repodir),
     )
     res = await process.wait()
 

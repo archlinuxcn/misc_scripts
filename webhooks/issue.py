@@ -110,11 +110,11 @@ Lilac 无法解析此问题报告。你按照模板填写了吗？''')
         except LookupError:
           pass
         else:
-          logs = [line for name, line in logs.items() if name in packages]
-          logs = '\n'.join(sorted(logs))
+          logs2 = [line for name, line in logs.items() if name in packages]
+          logs3 = '\n'.join(sorted(logs2))
           comment = f'''build log for auto building out-of-date packages:
 ```
-{logs}
+{logs3}
 ```
 '''
 
