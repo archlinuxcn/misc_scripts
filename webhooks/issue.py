@@ -121,7 +121,7 @@ Lilac 无法解析此问题报告。你按照模板填写了吗？''')
   if labels:
     await issue.add_labels(labels)
   if assignees:
-    await issue.assign(assignees)
+    await issue.assign(list(assignees))
   if comment:
     await issue.comment(comment)
 
