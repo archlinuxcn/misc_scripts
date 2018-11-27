@@ -27,6 +27,16 @@ _TypeDescMap = {
 
 _PkgPattern = re.compile(r'[\w-]+')
 
+_CANT_PARSE_NEW = '''\
+Lilac cannot parse this issue. Did you follow the template?
+
+Lilac 无法解析此问题报告。你按照模板填写了吗？'''
+
+_CANT_PARSE_EDITED = '''\
+Lilac still cannot parse this issue, please check against the template.
+
+Lilac 依旧无法解析此问题报告，请对照模板检查。'''
+
 def parse_issue_text(text):
   st = _ParseState.init
   skipping = False
@@ -65,16 +75,25 @@ def parse_issue_text(text):
 
   return issuetype, packages
 
-async def process_issue(gh: GitHub, issue_dict: Dict[str, Any]) -> None:
+async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
+                        edited: bool) -> None:
   issue = Issue(issue_dict, gh)
   body = issue.body
   issuetype, packages = parse_issue_text(body)
+
+  if edited:
+    async for c in gh.get_issue_comments(
+      config.REPO_NAME, issue.number):
+      if c.author == config.MY_GITHUB:
+        await c.delete()
+        break
+
   if issuetype is None or (not packages and issuetype in [
     IssueType.OutOfDate, IssueType.Orphaning, IssueType.Official]):
-    await issue.comment('''\
-Lilac cannot parse this issue. Did you follow the template?
-
-Lilac 无法解析此问题报告。你按照模板填写了吗？''')
+    if edited:
+      await issue.comment(_CANT_PARSE_EDITED)
+    else:
+      await issue.comment(_CANT_PARSE_NEW)
     return
 
   find_assignees = True
@@ -94,7 +113,7 @@ Lilac 无法解析此问题报告。你按照模板填写了吗？''')
 
   if packages:
     if find_assignees:
-      await git.pull_repo(config.REPODIR, config.REPO)
+      await git.pull_repo(config.REPODIR, config.REPO_URL)
 
       for pkg in packages:
         maintainers = await lilac.find_maintainers(REPO, pkg)

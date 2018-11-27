@@ -55,10 +55,11 @@ class IssueHandler:
       return
 
     data = json.loads(body)
-    if data['action'] != 'opened':
+    if data['action'] not in ['opened', 'edited']:
       return
 
-    await issue.process_issue(self.gh, data['issue'])
+    await issue.process_issue(
+      self.gh, data['issue'], data['action'] == 'edited')
 
 class MaintainersHandler:
   def __init__(self):
@@ -89,7 +90,7 @@ class MaintainersHandler:
     ret = []
 
     self._cache.expire()
-    await git.may_pull_repo(config.REPODIR, config.REPO)
+    await git.may_pull_repo(config.REPODIR, config.REPO_URL)
 
     for pkgbase in packages:
       try:
