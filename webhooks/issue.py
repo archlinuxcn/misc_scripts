@@ -94,6 +94,7 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
       await issue.comment(_CANT_PARSE_EDITED)
     else:
       await issue.comment(_CANT_PARSE_NEW)
+    await issue.close()
     return
 
   find_assignees = True
@@ -143,5 +144,8 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
     await issue.assign(list(assignees))
   if comment:
     await issue.comment(comment)
+
+  if issue.closed:
+    await issue.reopen()
 
 REPO = lilac.get_repo(config.LILAC_INI)
