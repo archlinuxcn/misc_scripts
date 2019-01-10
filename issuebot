@@ -5,7 +5,6 @@ import sys
 import os
 import subprocess
 import shutil
-import fileinput
 
 from github import GitHub
 from myutils import file_lock
@@ -17,22 +16,6 @@ ORPHANING_WAITING_TIME = datetime.timedelta(days=14)
 
 LILAC_LOCK = os.path.expanduser('~/.lilac/.lock')
 REPO = os.path.expanduser('~/archgitrepo')
-
-def remove_ini_section(name, filename):
-  section_header = f'[{name}]'
-  skipping = False
-
-  with fileinput.input(files=(filename,), inplace=True) as f:
-    for line in f:
-      if line.startswith(section_header):
-        skipping = True
-      elif skipping and line.startswith('['):
-        skipping = False
-      elif skipping and line.startswith('#') and '{{{' in line:
-        skipping = False
-
-      if not skipping:
-        print(line.rstrip('\n'))
 
 def git_push():
   while True:
@@ -89,12 +72,9 @@ lilac can't parse out the relevant package names, please handle manually.''')
           pass
         else:
           subprocess.check_call(['git', 'add', name], cwd=REPO)
-          remove_ini_section(name, os.path.join(REPO, 'nvchecker.ini'))
           changed = True
 
       if changed:
-        subprocess.check_call(['git', 'add', 'nvchecker.ini'], cwd=REPO)
-
         msg = f'{", ".join(packages)}: orphaned for a long time, removing. closes #{issue.number}'
         subprocess.check_output(['git', 'commit', '-m', msg], cwd=REPO)
         git_push()
