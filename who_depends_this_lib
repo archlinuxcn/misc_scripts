@@ -118,9 +118,9 @@ if __name__ == '__main__':
   import argparse
 
   parser = argparse.ArgumentParser(
-    description='find out what Arch packages need a particular library')
+    description='find out what Arch packages need a particular library. Depends on cmdutils from winterpy.')
   parser.add_argument('pkgdb',
-                      help='the package database')
+                      help='the package files database, eg. /data/repo/x86_64/archlinuxcn.files.tar.gz')
   parser.add_argument('libname',
                       help='the library filename regex to match')
   args = parser.parse_args()
