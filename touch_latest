@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+
+from collections import defaultdict
+import pathlib
+import tarfile
+
+from pyalpm import vercmp
+
+import archpkg
+
+class ArchPkgInfo(archpkg.PkgNameInfo):
+  def __lt__(self, other):
+    # ignore arch mismatch
+    if self.name != other.name:
+      return NotImplemented
+    if self.version != other.version:
+      return vercmp(self.version, other.version) == -1
+    return float(self.release) < float(other.release)
+
+def main(dir, reponame, *, dry_run=True):
+  for arch in dir.iterdir():
+    if not arch.is_dir():
+      continue
+
+    if arch.name[0] == '.':
+      continue
+
+    in_db = {}
+    with tarfile.open(arch / f'{reponame}.db.tar.gz') as tar:
+      for tarinfo in tar:
+        if tarinfo.isdir():
+          name = tarinfo.name.split('/', 1)[0]
+          p = ArchPkgInfo.parseFilename(f'{name}-{arch.name}.pkg.tar.xz')
+          in_db[p.name] = p.version, p.release
+
+    pkgs = defaultdict(list)
+    for f in arch.iterdir():
+      if f.is_symlink():
+        continue
+
+      if not f.name.endswith('.pkg.tar.xz'):
+        continue
+
+      pkg = ArchPkgInfo.parseFilename(f.name)
+      pkgs[pkg.name].append((pkg, f))
+
+    for _, v in pkgs.items():
+      try:
+        v.sort()
+      except TypeError:
+        print('Bad things happen: %s' % v)
+        raise
+
+      p2, f = v[-1]
+      try:
+        if in_db[p2.name] == (p2.version, p2.release):
+          continue
+      except KeyError:
+        pass
+
+      if dry_run:
+        print('would touch %s.' % f)
+      else:
+        print('touching %s.' % f)
+        with open(f, 'a') as f:
+          pass
+
+if __name__ == '__main__':
+  import argparse
+  parser = argparse.ArgumentParser(description='touch packages with new version')
+  parser.add_argument('-n', '--dry-run', action='store_true',
+                      help='dry run')
+  parser.add_argument('dir',
+                      help='repo directory')
+  parser.add_argument('name',
+                      help='repo name')
+
+  args = parser.parse_args()
+  main(pathlib.Path(args.dir), args.name, dry_run = args.dry_run)
