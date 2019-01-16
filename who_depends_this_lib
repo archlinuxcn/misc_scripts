@@ -48,7 +48,10 @@ def handle_rmtree_error(tmpdir, func, path, excinfo):
   if isinstance(excinfo[1], PermissionError) and \
      os.path.commonpath((path, tmpdir)) == tmpdir:
     os.chmod(os.path.dirname(path), 0o700)
-    shutil.rmtree(path, onerror=partial(handle_rmtree_error, path))
+    if os.path.isdir(path):
+      shutil.rmtree(path, onerror=partial(handle_rmtree_error, path))
+    else:
+      os.unlink(path)
 
 @contextlib.contextmanager
 def extract_package(pkg):
