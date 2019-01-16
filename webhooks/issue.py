@@ -117,7 +117,10 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
       await git.pull_repo(config.REPODIR, config.REPO_URL)
 
       for pkg in packages:
-        maintainers = await lilac.find_maintainers(REPO, pkg)
+        try:
+          maintainers = await lilac.find_maintainers(REPO, pkg)
+        except FileNotFoundError:
+          continue
 
         assignees.update(x.github for x in maintainers
                          if x.github is not None)
