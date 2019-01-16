@@ -16,7 +16,7 @@ use failure::Error;
 use structopt::StructOpt;
 
 const LILAC_LOCK: &str = "~lilydjwg/.lilac/.lock";
-const LILAC_REPO: &str = "~lilydjwg/archgitrepo";
+const LILAC_REPO: &str = "~lilydjwg/archgitrepo/archlinuxcn";
 const USER: &str = "lilydjwg";
 
 fn flock<P: AsRef<Path>>(lockfile: P) -> Result<(), Error> {

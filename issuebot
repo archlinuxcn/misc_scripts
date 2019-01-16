@@ -15,7 +15,7 @@ REQUEST_WAITING_TIME = datetime.timedelta(days=30)
 ORPHANING_WAITING_TIME = datetime.timedelta(days=14)
 
 LILAC_LOCK = os.path.expanduser('~/.lilac/.lock')
-REPO = os.path.expanduser('~/archgitrepo')
+REPO = os.path.expanduser('~/archgitrepo/archlinuxcn')
 
 def git_push():
   while True:

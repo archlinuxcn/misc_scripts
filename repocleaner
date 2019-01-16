@@ -11,7 +11,7 @@ from typing import Set, List, Dict, Tuple
 import archpkg
 
 repo_path: Path = Path('/data/repo')
-gitrepo_path: Path = Path('~/archgitrepo').expanduser()
+gitrepo_path: Path = Path('~/archgitrepo/archlinuxcn').expanduser()
 max_keep: int = 2
 DRY_RUN: bool = False
 
