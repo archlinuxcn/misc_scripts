@@ -78,6 +78,9 @@ def parse_issue_text(text):
 async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
                         edited: bool) -> None:
   issue = Issue(issue_dict, gh)
+  if issue.number < 700:
+    return
+
   body = issue.body
   issuetype, packages = parse_issue_text(body)
 
