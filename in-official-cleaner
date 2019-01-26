@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+
+import asyncio
+import os
+from collections import defaultdict
+from typing import Dict, List, Set
+import pathlib
+import logging
+import subprocess
+
+from myutils import lock_file
+from agithub import GitHub
+
+from lilac2.const import mydir as lilacdir
+from lilac2 import pkgbuild, packages
+
+from webhooks.issue import parse_issue_text
+
+dbpath = lilacdir / 'pacmandb'
+repodir = pathlib.Path('~/archgitrepo/archlinuxcn').expanduser()
+github_repo = 'archlinuxcn/repo'
+
+logger = logging.getLogger(__name__)
+
+async def file_issues(gh: GitHub, duplicate_info: Dict[str, List[str]]) -> None:
+  for pkgbase, pkgnames in duplicate_info.items():
+    body = f'''\
+### 问题类型 / Type of issues
+
+* 软件包被官方仓库收录 / available in official repos
+
+### 受影响的软件包 / Affect packages
+
+* {pkgbase}
+'''
+  if [pkgbase] != pkgnames:
+    body += '----\n'
+    body += '\n'.join(f'''包 {pkgname} 从属于包基础 {pkgbase}。''' for pkgname in pkgnames)
+
+  # print(body)
+  issue = await gh.create_issue(github_repo, f'{", ".join(pkgnames)} in official repos now', body)
+  print('Created:', issue)
+
+async def get_open_issue_packages(gh: GitHub) -> Set[str]:
+  issues = [
+    issue async for issue in gh.get_repo_issues(
+      github_repo, labels='in-official-repos')
+  ]
+
+  ret: Set[str] = set()
+
+  for issue in issues:
+    _issuetype, packages = parse_issue_text(issue.body)
+    ret.update(packages)
+
+  return ret
+
+def main() -> None:
+  lock_file(lilacdir / '.lock')
+
+  token = os.environ['GITHUB_TOKEN']
+  gh = GitHub(token)
+  loop = asyncio.get_event_loop()
+
+  dbpath.mkdir(exist_ok=True)
+  pkgbuild.init_data(dbpath, quiet=True)
+  official = pkgbuild.get_official_packages()
+
+  subprocess.check_call(
+    ['git', 'pull', '--no-edit'],
+    cwd=repodir, stdout=subprocess.DEVNULL,
+  )
+  ours = packages.get_all_managed_packages(repodir)
+
+  duplicates = official & {x[1] for x in ours}
+  logger.debug('duplicates: %r', duplicates)
+
+  # aiohttp is unhappy with async.run:
+  # Timeout context manager should be used inside a task
+  open_packages = loop.run_until_complete(get_open_issue_packages(gh))
+  logger.debug('open_packages: %r', open_packages)
+
+  duplicate_info: Dict[str, List[str]] = defaultdict(list)
+  for pkgbase, pkgname in ours:
+    if pkgbase in open_packages:
+      continue
+    if pkgname in duplicates:
+      duplicate_info[pkgbase].append(pkgname)
+
+  if duplicate_info:
+    loop.run_until_complete(file_issues(gh, duplicate_info))
+
+if __name__ == '__main__':
+  from nicelogger import enable_pretty_logging
+  enable_pretty_logging('WARNING')
+
+  main()
+
