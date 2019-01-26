@@ -112,6 +112,9 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
     labels = ['orphaning']
     find_assignees = False
     assignees.add('lilacbot')
+  elif issuetype == IssueType.Official:
+    labels = ['in-official-repos']
+    assignees.add('lilacbot')
   else:
     labels = []
 

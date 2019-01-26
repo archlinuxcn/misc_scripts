@@ -13,6 +13,7 @@ from webhooks.issue import parse_issue_text
 
 REQUEST_WAITING_TIME = datetime.timedelta(days=30)
 ORPHANING_WAITING_TIME = datetime.timedelta(days=14)
+OFFICIAL_WAITING_TIME = datetime.timedelta(days=4)
 
 LILAC_LOCK = os.path.expanduser('~/.lilac/.lock')
 REPO = os.path.expanduser('~/archgitrepo/archlinuxcn')
@@ -29,12 +30,9 @@ def git_push():
         sys.stdout.write(e.output)
         raise
 
-def main():
-  token = os.environ['GITHUB_TOKEN']
-  gh = GitHub(token)
-  repo = 'archlinuxcn/repo'
-  now = datetime.datetime.now(datetime.timezone.utc)
-
+def process_package_requests(
+  gh: GitHub, repo: str, now: datetime.datetime,
+) -> None:
   for issue in gh.get_repo_issues(repo, labels='package-request'):
     if now - issue.updated_at > REQUEST_WAITING_TIME:
       print(f'Marking {issue} as failed')
@@ -45,6 +43,9 @@ This request has been waiting for too long, closing.''')
       issue.add_labels(['request-failed'])
       issue.close()
 
+def process_orphaned_packages(
+  gh: GitHub, repo: str, now: datetime.datetime,
+) -> None:
   issues = [issue for issue in gh.get_repo_issues(repo, labels='orphaning')
             if now - issue.updated_at > ORPHANING_WAITING_TIME
             and 'seen-by-lilac' not in issue.labels]
@@ -90,6 +91,68 @@ Automatically removed.''')
 
 Already removed.''')
       issue.close()
+
+def process_in_official(
+  gh: GitHub, repo: str, now: datetime.datetime,
+) -> None:
+  issues = [
+    issue for issue in gh.get_repo_issues(
+      repo, labels='in-official-repos')
+    if now - issue.updated_at > OFFICIAL_WAITING_TIME
+    and 'seen-by-lilac' not in issue.labels
+  ]
+
+  for issue in issues:
+    print(f'Removing in-official-repos {issue}')
+    _issuetype, packages = parse_issue_text(issue.body)
+    if not packages:
+      issue.comment('''\
+lilac 无法解析出涉及的软件包名，请手动处理。
+
+lilac can't parse out the relevant package names, please handle manually.''')
+      issue.add_labels(['seen-by-lilac'])
+      continue
+
+    changed = False
+
+    with file_lock(LILAC_LOCK):
+      subprocess.check_output(['git', 'pull'], cwd=REPO)
+
+      for name in packages:
+        try:
+          shutil.rmtree(os.path.join(REPO, name))
+        except FileNotFoundError:
+          pass
+        else:
+          subprocess.check_call(['git', 'add', name], cwd=REPO)
+          changed = True
+
+      if changed:
+        msg = f'{", ".join(packages)}: orphaned for a long time, removing. closes #{issue.number}'
+        subprocess.check_output(['git', 'commit', '-m', msg], cwd=REPO)
+        git_push()
+
+    if changed:
+      issue.comment('''\
+已自动删除。
+
+Automatically removed.''')
+    else:
+      issue.comment('''\
+已被删除。
+
+Already removed.''')
+      issue.close()
+
+def main() -> None:
+  token = os.environ['GITHUB_TOKEN']
+  gh = GitHub(token)
+  repo = 'archlinuxcn/repo'
+  now = datetime.datetime.now(datetime.timezone.utc)
+
+  process_package_requests(gh, repo, now)
+  process_orphaned_packages(gh, repo, now)
+  process_in_official(gh, repo, now)
 
 if __name__ == '__main__':
   main()
