@@ -67,7 +67,7 @@ def main() -> None:
   official = pkgbuild.get_official_packages()
 
   subprocess.check_call(
-    ['git', 'pull', '--no-edit'],
+    ['git', 'pull', '--no-edit', '-q'],
     cwd=repodir, stdout=subprocess.DEVNULL,
   )
   ours = packages.get_all_managed_packages(repodir)
