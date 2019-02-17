@@ -28,14 +28,14 @@ _TypeDescMap = {
 _PkgPattern = re.compile(r'[\w-]+')
 
 _CANT_PARSE_NEW = '''\
-Lilac cannot parse this issue. Did you follow the template?
+Lilac cannot parse this issue. Did you follow the template? Please update and I'll reopen this.
 
-Lilac 无法解析此问题报告。你按照模板填写了吗？'''
+Lilac 无法解析此问题报告。你按照模板填写了吗？请更新，然后我会重新打开这个问题。'''
 
 _CANT_PARSE_EDITED = '''\
-Lilac still cannot parse this issue, please check against the template.
+Lilac still cannot parse this issue, please check against the template. Please update and I'll reopen this.
 
-Lilac 依旧无法解析此问题报告，请对照模板检查。'''
+Lilac 依旧无法解析此问题报告，请对照模板检查。请更新，然后我会重新打开这个问题。'''
 
 def parse_issue_text(text):
   st = _ParseState.init
