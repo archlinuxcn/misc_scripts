@@ -21,7 +21,8 @@ def get_stats():
 
   r = {}
   for pkg in db.pkgcache:
-    r[pkg.base] = max(stats.get(pkg.name, 0), r.get(pkg.base, 0))
+    pkgbase = pkg.base or pkg.name
+    r[pkgbase] = max(stats.get(pkg.name, 0), r.get(pkgbase, 0))
 
   return r
 
