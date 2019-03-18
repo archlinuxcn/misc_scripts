@@ -1,0 +1,53 @@
+#!/usr/bin/python3
+
+import json
+import sys
+import time
+
+import requests
+import progressbar
+
+def main(pkgname=''):
+  s = requests.Session()
+
+  url = 'https://pkgstats.archlinux.de/package/datatables'
+  length = 100
+  params = {
+    'draw': '1',
+    'start': str(0),
+    'length': str(length),
+    'search[value]': pkgname,
+  }
+
+  bar = progressbar.ProgressBar(max_value=1)
+  bar.update(0)
+  r = s.get(url, params=params)
+  data = r.json()
+  bar.max_value = data['recordsFiltered']
+  bar.update(len(data['data']))
+  progressbar.streams.flush()
+
+  for i in range(0, (data['recordsFiltered'] - 1) // length):
+    time.sleep(1)
+    params['start'] = (i + 1) * length
+    r = s.get(url, params=params)
+    data['data'] += r.json()['data']
+    bar.update(len(data['data']))
+  print()
+
+  with open('pkgstats.json', 'w') as f:
+    json.dump(data, f)
+
+  for pkgdata in data['data']:
+    if pkgdata['pkgname'] == pkgname:
+      print('%d / %d = %.2f%%' % (
+        pkgdata['count'],
+        data['recordsTotal'],
+        100 * pkgdata['count'] / data['recordsTotal'],
+      ))
+
+if __name__ == '__main__':
+  try:
+    main(sys.argv[1])
+  except IndexError:
+    main()

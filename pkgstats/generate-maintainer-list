@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+
+from pathlib import Path
+import logging
+from collections import defaultdict
+import json
+
+import pyalpm
+
+from lilac2 import lilacpy
+
+logger = logging.getLogger(__name__)
+
+def get_stats():
+  with open('pkgstats.json') as f:
+    pkgstats = json.load(f)
+  stats = {x['pkgname']: x['count'] for x in pkgstats['data']}
+
+  h = pyalpm.Handle('/', '/var/lib/pacman')
+  db = h.register_syncdb('archlinuxcn', 0)
+
+  r = {}
+  for pkg in db.pkgcache:
+    r[pkg.base] = stats.get(pkg.name, 0)
+
+  return r
+
+def main():
+  repodir = Path('/ldata/src/archgitrepo/archlinuxcn')
+  mods, _ = lilacpy.load_all(repodir)
+  r = defaultdict(list)
+  stats = get_stats()
+
+  for name, m in mods.items():
+    count = stats.get(name, 0)
+    for x in m.maintainers:
+      r[x['github']].append((name, count))
+
+  for who, pkgs in sorted(r.items()):
+    print(f'@{who}:')
+    for pkg, count in pkgs:
+      print(f'* [ ] {pkg} ({count})')
+    print()
+
+if __name__ == '__main__':
+  from nicelogger import enable_pretty_logging
+  enable_pretty_logging('DEBUG')
+  main()
