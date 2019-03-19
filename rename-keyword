@@ -1,0 +1,35 @@
+#!/bin/sh
+
+# Rename keywords in lilac.yaml or lilac.py, for every subdirectory under the current directory
+# "Keyword" means yaml key or python variable
+
+trap "echo Exited!; exit;" SIGINT SIGTERM
+
+function rename_in_lilac_yaml {
+	if [ -f lilac.yaml ]; then
+		sed -i "s/^$1\(\s*\):/$2\1:/" lilac.yaml
+	fi
+}
+
+function rename_in_lilac_py {
+	if [ -f lilac.py ]; then
+		sed -i "s/^$1\(\s*\)=/$2\1=/" lilac.py
+	fi
+}
+
+if [ $# -lt 2 ]; then
+	printf "%s old_keyword new_keyword\n" $0
+	exit
+fi
+
+old_keyword=$1
+new_keyword=$2
+
+for name in `ls`; do
+	if [ -d $name ]; then
+		cd $name
+		rename_in_lilac_py $old_keyword $new_keyword
+		rename_in_lilac_yaml $old_keyword $new_keyword
+		cd ..
+	fi
+done
