@@ -18,6 +18,8 @@ OFFICIAL_WAITING_TIME = datetime.timedelta(days=4)
 LILAC_LOCK = os.path.expanduser('~/.lilac/.lock')
 REPO = os.path.expanduser('~/archgitrepo/archlinuxcn')
 
+ORPHANED_PACKAGES_BREAKDOWN = 5
+
 def git_push():
   while True:
     try:
@@ -76,7 +78,11 @@ lilac can't parse out the relevant package names, please handle manually.''')
           changed = True
 
       if changed:
-        msg = f'{", ".join(packages)}: orphaned for a long time, removing. closes #{issue.number}'
+        msg = None
+        if len(packages) > ORPHANED_PACKAGES_BREAKDOWN:
+          msg = f'Removing {len(packages)} due to being orphaned for a lone time.\n\nAffected packages:\n{"\n".join([f"- {x}" for x in packages])}\n\ncloses #{issue.number}'
+        else:
+          msg = f'{", ".join(packages)}: orphaned for a long time, removing. closes #{issue.number}'
         subprocess.check_output(['git', 'commit', '-m', msg], cwd=REPO)
         git_push()
 
@@ -128,7 +134,9 @@ lilac can't parse out the relevant package names, please handle manually.''')
           changed = True
 
       if changed:
-        msg = f'{", ".join(packages)}: orphaned for a long time, removing. closes #{issue.number}'
+        msg = None
+        if len(packages) > ORPHANED_PACKAGES_BREAKDOWN:          msg = f'Removing {len(packages)} due to being orphaned for a lone time.\n\nAffected packages:\n{"\n".join([f"- {x}" for x in packages])}\n\ncloses #{issue.number}'                                                       else:
+          msg = f'{", ".join(packages)}: orphaned for a long time, removing. closes #{issue.number}'
         subprocess.check_output(['git', 'commit', '-m', msg], cwd=REPO)
         git_push()
 
