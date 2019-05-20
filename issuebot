@@ -80,7 +80,10 @@ lilac can't parse out the relevant package names, please handle manually.''')
       if changed:
         msg = None
         if len(packages) > ORPHANED_PACKAGES_BREAKDOWN:
-          msg = f'Removing {len(packages)} due to being orphaned for a long time.\n\nAffected packages:\n{"\n".join([f"- {x}" for x in packages])}\n\ncloses #{issue.number}'
+          msg = f'Removing {len(packages)} '
+          'due to being orphaned for a long time.\n\n'
+          'Affected packages:\n{"\n".join(f"- {x}" for x in packages)}\n\n'
+          'closes #{issue.number}'
         else:
           msg = f'{", ".join(packages)}: orphaned for a long time, removing. closes #{issue.number}'
         subprocess.check_output(['git', 'commit', '-m', msg], cwd=REPO)
@@ -136,7 +139,10 @@ lilac can't parse out the relevant package names, please handle manually.''')
       if changed:
         msg = None
         if len(packages) > ORPHANED_PACKAGES_BREAKDOWN:
-          msg = f'Removing {len(packages)} due to being orphaned for a lone time.\n\nAffected packages:\n{"\n".join([f"- {x}" for x in packages])}\n\ncloses #{issue.number}'
+          msg = f'Removing {len(packages)} '
+          'due to being orphaned for a lone time.\n\n'
+          'Affected packages:\n{"\n".join(f"- {x}" for x in packages)}\n\n'
+          'closes #{issue.number}'
         else:
           msg = f'{", ".join(packages)}: orphaned for a long time, removing. closes #{issue.number}'
         subprocess.check_output(['git', 'commit', '-m', msg], cwd=REPO)
