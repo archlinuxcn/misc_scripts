@@ -25,7 +25,7 @@ _TypeDescMap = {
   '其它': IssueType.Other,
 }
 
-_PkgPattern = re.compile(r'[\w-]+')
+_PkgPattern = re.compile(r'[\w.-]+')
 
 _CANT_PARSE_NEW = '''\
 Lilac cannot parse this issue. Did you follow the template? Please update and I'll reopen this.
