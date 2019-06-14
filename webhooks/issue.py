@@ -70,6 +70,8 @@ def parse_issue_text(text):
     elif st == _ParseState.packages:
       firstword = _PkgPattern.search(line)
       if firstword:
+        if line.startswith('* [x] '):
+          continue
         firstword = firstword.group()
         packages.append(firstword)
 
