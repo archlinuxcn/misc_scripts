@@ -81,7 +81,7 @@ lilac can't parse out the relevant package names, please handle manually.''')
         msg = None
         if len(packages) > ORPHANED_PACKAGES_BREAKDOWN:
           affected = "\n".join(f"- {x}" for x in packages)
-          msg = f'''Removing {len(packages)} \
+          msg = f'''Removing {len(packages)} packages \
 due to being orphaned for a long time.
 
 Affected packages:
@@ -144,7 +144,7 @@ lilac can't parse out the relevant package names, please handle manually.''')
         msg = None
         if len(packages) > ORPHANED_PACKAGES_BREAKDOWN:
           affected = "\n".join(f"- {x}" for x in packages)
-          msg = f'''Removing {len(packages)} \
+          msg = f'''Removing {len(packages)} packages \
 because they are already in official repos.
 
 Affected packages:
