@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import itertools
 import os
 import tempfile
 import subprocess
@@ -63,7 +64,37 @@ def extract_package(pkg):
   finally:
     shutil.rmtree(d, onerror=partial(handle_rmtree_error, d))
 
-def check_package(pkg, lib_re):
+def check_package(pkg, lib_re, dep_pkgname):
+  # If a package links to a library that matches `lib_re` but does not have
+  # `dep_pkgname` installed during the build, that package is already broken
+  # For example, packages with files linked to libprotobuf.so should have
+  # protobuf installed during the build.
+  has_dep = False
+  buildinfo_found = False
+  with tarfile.open(pkg) as tar:
+    threshold = 10
+    for tarinfo in itertools.islice(tar, threshold):
+      if tarinfo.name == '.BUILDINFO':
+        for line in tar.extractfile(tarinfo).read().decode().split('\n'):
+          if line.startswith('installed = '):
+            # pkgver, pkgrel and arch are not used
+            parts = line[len('installed = '):].rsplit('-', maxsplit=3)
+            if len(parts) != 4:
+              logger.warning('Old .BUILDINFO format - entry %s found in %s; checking anyway', line, pkg)
+              has_dep = True
+              break
+            pkgname, _, _, _ = parts
+            if pkgname == dep_pkgname:
+              has_dep = True
+              break
+        buildinfo_found = True
+        break
+  if not buildinfo_found:
+    logger.warning('Cannot find .BUILDINFO in first %d entries of %s; checking anyway', threshold, pkg)
+    has_dep = True
+  if not has_dep:
+    logger.info('%s does not depend on %s, skipping' % (pkg, dep_pkgname))
+    return None, None
   with extract_package(pkg) as d:
     logger.info('checking...')
     r, lib = check_dependency(d, lib_re)
@@ -74,7 +105,7 @@ def check_package(pkg, lib_re):
 
   return None, None
 
-def main(db, lib_re):
+def main(db, lib_re, dep_pkgname):
   ret = []
   dir = os.path.dirname(db)
 
@@ -83,6 +114,9 @@ def main(db, lib_re):
       if tarinfo.isdir():
         filename = files_match = None
         name = tarinfo.name.split('/', 1)[0]
+        continue
+
+      if tarinfo.name.endswith('/depends'):
         continue
 
       if tarinfo.name.endswith('/desc'):
@@ -107,7 +141,7 @@ def main(db, lib_re):
             break
 
       if filename and files_match:
-        r, lib = check_package(os.path.join(dir, filename), lib_re)
+        r, lib = check_package(os.path.join(dir, filename), lib_re, dep_pkgname)
         if r:
           ret.append((name, r, lib))
 
@@ -126,6 +160,8 @@ if __name__ == '__main__':
                       help='the package files database, eg. /data/repo/x86_64/archlinuxcn.files.tar.gz')
   parser.add_argument('libname',
                       help='the library filename regex to match')
+  parser.add_argument('dep_pkgname',
+                      help='the package name that affected packages should depend on')
   args = parser.parse_args()
 
-  main(args.pkgdb, re.compile(args.libname))
+  main(args.pkgdb, re.compile(args.libname), args.dep_pkgname)
