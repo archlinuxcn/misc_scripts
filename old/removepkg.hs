@@ -11,7 +11,7 @@ import Foreign.C.Types (CTime(..))
 -- pkgdir = "/home/repo"
 pkgdir = "/mnt/data/repo"
 -- pkgdir = "/home/lilydjwg/tmpfs/repo"
-exts = [".pkg.tar.xz", ".pkg.tar.xz.sig"]
+exts = [".pkg.tar.xz", ".pkg.tar.xz.sig", ".pkg.tar.zst", ".pkg.tar.zst.sig"]
 
 olderThan t f = do
   st <- getFileStatus f

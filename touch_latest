@@ -38,7 +38,7 @@ def main(dir, reponame, *, dry_run=True):
       if f.is_symlink():
         continue
 
-      if not f.name.endswith('.pkg.tar.xz'):
+      if not f.name.endswith(('.pkg.tar.xz', '.pkg.tar.zst')):
         continue
 
       pkg = ArchPkgInfo.parseFilename(f.name)

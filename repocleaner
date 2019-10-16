@@ -65,7 +65,7 @@ def clean(path: Path, all_packages: Set[str]) -> None:
     if f.name[0] == '.':
       continue
 
-    if f.name.endswith('.pkg.tar.xz'):
+    if f.name.endswith(('.pkg.tar.xz', '.pkg.tar.zst')):
       pkg = archpkg.PkgNameInfo.parseFilename(f.name)
       if pkg.name.endswith('-debug'):
         name = pkg.name[:-6]
