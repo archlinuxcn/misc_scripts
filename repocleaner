@@ -61,6 +61,8 @@ def remove_pkg(path: Path) -> None:
 
 def clean(path: Path, all_packages: Set[str]) -> None:
   pkgs: Dict[str, List[Tuple[archpkg.PkgNameInfo, Path]]] = defaultdict(list)
+  debug_pkgs: List[Path] = []
+
   for f in path.iterdir():
     if f.name[0] == '.':
       continue
@@ -68,9 +70,11 @@ def clean(path: Path, all_packages: Set[str]) -> None:
     if f.name.endswith(('.pkg.tar.xz', '.pkg.tar.zst')):
       pkg = archpkg.PkgNameInfo.parseFilename(f.name)
       if pkg.name.endswith('-debug'):
-        name = pkg.name[:-6]
+        debug_pkgs.append(f)
+        continue
       else:
         name = pkg.name
+
       if name not in all_packages:
         print('package %s removed, removing file %s.' % (pkg.name, f))
         remove_pkg(f)
@@ -88,6 +92,11 @@ def clean(path: Path, all_packages: Set[str]) -> None:
     for _, f in v[:-max_keep]:
       print('remove old package file %s.' % f)
       remove_pkg(f)
+
+  for f in debug_pkgs:
+    pkgname = f.name.replace('-debug-', '-')
+    if not f.with_name(pkgname).exists():
+      print('Removing debug package %s.' % f)
 
 def main() -> None:
   os.chdir(gitrepo_path)
