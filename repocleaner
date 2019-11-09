@@ -97,6 +97,7 @@ def clean(path: Path, all_packages: Set[str]) -> None:
     pkgname = f.name.replace('-debug-', '-')
     if not f.with_name(pkgname).exists():
       print('Removing debug package %s.' % f)
+      remove_pkg(f)
 
 def main() -> None:
   os.chdir(gitrepo_path)
