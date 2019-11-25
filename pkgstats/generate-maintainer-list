@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def get_stats():
   with open('pkgstats.json') as f:
     pkgstats = json.load(f)
-  stats = {x['pkgname']: x['count'] for x in pkgstats['data']}
+  stats = {x['name']: x for x in pkgstats}
 
   h = pyalpm.Handle('/', '/var/lib/pacman')
   db = h.register_syncdb('archlinuxcn', 0)
@@ -22,7 +22,23 @@ def get_stats():
   r = {}
   for pkg in db.pkgcache:
     pkgbase = pkg.base or pkg.name
-    r[pkgbase] = max(stats.get(pkg.name, 0), r.get(pkgbase, 0))
+    a = stats.get(pkg.name)
+    b = stats.get(pkgbase)
+    if a is None:
+      r[pkgbase] = b
+    elif b is None:
+      r[pkgbase] = a
+    elif a is None and b is None:
+      r[pkgbase] = {
+        "name": "(null)",
+        "samples": 0,
+        "count": 0,
+        "popularity": 0,
+        "startMonth": 201910,
+        "endMonth": 201910
+      }
+    else:
+      r[pkgbase] = max([a, b], key=lambda x: x['count'])
 
   return r
 
@@ -33,14 +49,18 @@ def main():
   stats = get_stats()
 
   for name, m in mods.items():
-    count = stats.get(name, 0)
+    d = stats.get(name)
     for x in m.maintainers:
-      r[x['github']].append((name, count))
+      r[x['github']].append((name, d))
 
   for who, pkgs in sorted(r.items()):
     print(f'@{who}:')
-    for pkg, count in pkgs:
-      print(f'* [ ] {pkg} ({count})')
+    pkgs.sort(key=lambda x: 0 if x[1] is None else x[1]['count'])
+    for pkg, x in pkgs:
+      if x is None:
+        print(f'* [ ] {pkg} (no data)')
+      else:
+        print(f'* [ ] {pkg} ({x["count"]}/{x["samples"]} = {x["popularity"]})')
     print()
 
 if __name__ == '__main__':

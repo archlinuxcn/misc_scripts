@@ -1,53 +1,51 @@
 #!/usr/bin/python3
 
 import json
-import sys
 import time
 
 import requests
 import progressbar
 
-def main(pkgname=''):
+def main():
   s = requests.Session()
 
-  url = 'https://pkgstats.archlinux.de/package/datatables'
-  length = 100
+  url = 'https://pkgstats.archlinux.de/api/packages'
   params = {
-    'draw': '1',
-    'start': str(0),
-    'length': str(length),
-    'search[value]': pkgname,
+    'offset': '0',
+    'limit': '10000',
   }
 
+  offset = 0
   bar = progressbar.ProgressBar(max_value=1)
   bar.update(0)
+
   r = s.get(url, params=params)
   data = r.json()
-  bar.max_value = data['recordsFiltered']
-  bar.update(len(data['data']))
+
+  total = data['total']
+  offset += data['count']
+  pkgdata = data['packagePopularities']
+
+  bar.max_value = total
+  bar.update(offset)
   progressbar.streams.flush()
 
-  for i in range(0, (data['recordsFiltered'] - 1) // length):
+  while offset < total:
     time.sleep(1)
-    params['start'] = (i + 1) * length
+    params['offset'] = str(offset)
     r = s.get(url, params=params)
-    data['data'] += r.json()['data']
-    bar.update(len(data['data']))
+    data = r.json()
+    pkgdata += data['packagePopularities']
+    offset += data['count']
+    bar.update(offset)
+
   print()
 
   with open('pkgstats.json', 'w') as f:
-    json.dump(data, f)
-
-  for pkgdata in data['data']:
-    if pkgdata['pkgname'] == pkgname:
-      print('%d / %d = %.2f%%' % (
-        pkgdata['count'],
-        data['recordsTotal'],
-        100 * pkgdata['count'] / data['recordsTotal'],
-      ))
+    json.dump(pkgdata, f)
 
 if __name__ == '__main__':
   try:
-    main(sys.argv[1])
+    main()
   except IndexError:
     main()
