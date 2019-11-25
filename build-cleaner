@@ -4,8 +4,8 @@ import os
 import fcntl
 from sys import argv
 import re
-import shutil
 from contextlib import contextmanager
+import subprocess
 
 # ARCHBUILD='/tmp/workspace/archbuild'
 ARCHBUILD='/var/lib/archbuild'
@@ -66,7 +66,7 @@ def main():
                     with lock(full_path + '.lock'):
                         print('\033[1;32mClean up copy: %s...' % copy,
                               end='', flush=True)
-                        shutil.rmtree(full_path)
+                        subprocess.check_call(['rm', '-rf', '--one-file-system', full_path])
                         print('done\033[1;0m')
                 except BlockingIOError:
                     print('\033[1;31mCopy in use, skipped: \033[1;33m%s\033[1;0m' % copy)
