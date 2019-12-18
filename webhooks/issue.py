@@ -142,7 +142,7 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
 
         if maintainers != [issue.author]:
           at_authors = ' '.join(f'@{x}' for x in maintainers)
-          issue.comment(f'WARNING: Listed packages are maintained by {at_authors} other than the issue author.')
+          await issue.comment(f'WARNING: Listed packages are maintained by {at_authors} other than the issue author.')
 
       if issuetype == IssueType.OutOfDate and packages:
         try:
