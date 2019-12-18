@@ -113,10 +113,10 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
   elif issuetype == IssueType.Orphaning:
     labels = ['orphaning']
     find_assignees = True
-    assignees.add('lilacbot')
+    assignees.add(config.MY_GITHUB)
   elif issuetype == IssueType.Official:
     labels = ['in-official-repos']
-    assignees.add('lilacbot')
+    assignees.add(config.MY_GITHUB)
   else:
     labels = []
 
@@ -134,14 +134,14 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
                          if x.github is not None)
 
       if issuetype == IssueType.Orphaning:
-        if issue.author != 'lilacbot':
+        if issue.author != config.MY_GITHUB:
           try:
             assignees.remove(issue.author)
           except KeyError:
             pass
 
         if maintainers != [issue.author]:
-          at_authors = ' '.join(f'@{x}' for x in maintainers)
+          at_authors = ' '.join(f'@{x.github}' for x in maintainers if x.github is not None)
           await issue.comment(f'WARNING: Listed packages are maintained by {at_authors} other than the issue author.')
 
       if issuetype == IssueType.OutOfDate and packages:
