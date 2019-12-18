@@ -112,7 +112,7 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
     labels = ['out-of-date']
   elif issuetype == IssueType.Orphaning:
     labels = ['orphaning']
-    find_assignees = False
+    find_assignees = True
     assignees.add('lilacbot')
   elif issuetype == IssueType.Official:
     labels = ['in-official-repos']
@@ -132,6 +132,13 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
 
         assignees.update(x.github for x in maintainers
                          if x.github is not None)
+
+      if issuetype == IssueType.Orphaning:
+        if maintainers == [issue.author]:
+          assignees = {'lilacbot'}
+        else:
+          at_authors = ' '.join(f'@{x}' for x in maintainers)
+          issue.comment(f'WARNING: Listed packages are maintained by {at_authors} other than the issue author.')
 
       if issuetype == IssueType.OutOfDate and packages:
         try:
