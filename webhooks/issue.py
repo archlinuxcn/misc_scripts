@@ -86,7 +86,7 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
   body = issue.body
   issuetype, packages = parse_issue_text(body)
 
-  if edited:
+  if edited and issuetype != IssueType.Orphaning:
     async for c in gh.get_issue_comments(
       config.REPO_NAME, issue.number):
       if c.author == config.MY_GITHUB:
@@ -140,7 +140,7 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
           except KeyError:
             pass
 
-        if maintainers != [issue.author]:
+        if not edited and maintainers != [issue.author]:
           at_authors = ' '.join(f'@{x.github}' for x in maintainers if x.github is not None)
           await issue.comment(f'WARNING: Listed packages are maintained by {at_authors} other than the issue author.')
 
