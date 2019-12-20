@@ -140,8 +140,9 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
           except KeyError:
             pass
 
-        if not edited and maintainers != [issue.author]:
-          at_authors = ' '.join(f'@{x.github}' for x in maintainers if x.github is not None)
+        maintainer_githubs = [x.github for x in maintainers if x.github is not None]
+        if not edited and maintainer_githubs != [issue.author]:
+          at_authors = ' '.join(f'@{x}' for x in maintainer_githubs)
           await issue.comment(f'WARNING: Listed packages are maintained by {at_authors} other than the issue author.')
 
       if issuetype == IssueType.OutOfDate and packages:
