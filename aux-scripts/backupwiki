@@ -1,0 +1,15 @@
+#!/bin/zsh -e
+
+tdir=$(mktemp -d)
+sudo -u http pg_dump -n archcnwiki -O -x http > $tdir/db.sql
+
+cd $tdir
+ln -s /var/lib/mediawiki images
+
+{
+  echo db.sql
+  print -l images/*/*/*(.)
+} | tar c -T- | zstd -c --ultra -20 - > ~/wiki-backups/wikidb-"$(date +"%Y-%m-%d.%H:%M:%S")".tar.zst
+
+cd /
+rm -r $tdir
