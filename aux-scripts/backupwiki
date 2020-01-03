@@ -5,9 +5,10 @@ sudo -u http pg_dump -n archcnwiki -O -x http > $tdir/db.sql
 
 cd $tdir
 ln -s /var/lib/mediawiki images
+cp /etc/webapps/mediawiki/LocalSettings.php .
 
 {
-  echo db.sql
+  print -l db.sql LocalSettings.php
   print -l images/*/*/*(.)
 } | tar c -T- | zstd -c --ultra -20 - > ~/wiki-backups/wikidb-"$(date +"%Y-%m-%d.%H:%M:%S")".tar.zst
 
