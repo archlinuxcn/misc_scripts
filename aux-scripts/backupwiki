@@ -9,7 +9,7 @@ cp /etc/webapps/mediawiki/LocalSettings.php .
 
 {
   print -l db.sql LocalSettings.php
-  print -l images/*/*/*(.)
+  print -l images/logo.png images/*/*/*(.)
 } | tar c -T- | zstd -c --ultra -20 - > ~/wiki-backups/wikidb-"$(date +"%Y-%m-%d.%H:%M:%S")".tar.zst
 
 cd /
