@@ -150,7 +150,7 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
   if edited and issuetype != IssueType.Orphaning:
     async for c in gh.get_issue_comments(
       config.REPO_NAME, issue.number):
-      if c.author == config.MY_GITHUB:
+      if c.author == config.MY_GITHUB and 'cannot parse' in c.body:
         await c.delete()
         break
 
