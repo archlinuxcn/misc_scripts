@@ -108,7 +108,7 @@ Automatically removed.''')
 Already removed.''')
       issue.close()
 
-def remove_repo_depends(name: str, packages: List[str]):
+def remove_repo_depends(name: str, packages: List[str]) -> bool:
   # use ruamel.yaml for yaml manipulation with preserving indents and comments
   lilac_yaml_path = os.path.join(REPO, name, 'lilac.yaml')
 
@@ -117,7 +117,7 @@ def remove_repo_depends(name: str, packages: List[str]):
 
   repo_depends = lilac_yaml.get('repo_depends', [])
   if not repo_depends:
-    return
+    return False
 
   # Find out all repo_depends entries to remove. Not using list comprehension
   # here so that comments are preserved.
@@ -137,6 +137,9 @@ def remove_repo_depends(name: str, packages: List[str]):
       round_trip_dump(lilac_yaml, stream=f, indent=indent,
                       block_seq_indent=block_seq_indent)
     subprocess.check_call(['git', 'add', name], cwd=REPO)
+    return True
+  else:
+    return False
 
 def process_in_official(
   gh: GitHub, repo: str, now: datetime.datetime,
@@ -167,7 +170,8 @@ lilac can't parse out the relevant package names, please handle manually.''')
       for name in os.listdir(REPO):
         if not os.path.isdir(os.path.join(REPO, name)):
             continue
-        remove_repo_depends(name, packages)
+        if remove_repo_depends(name, packages):
+          changed = True
 
       for name in packages:
         try:
