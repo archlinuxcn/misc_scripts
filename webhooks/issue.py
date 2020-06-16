@@ -1,9 +1,11 @@
 import re
 from enum import Enum
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, List, Set
 
 from agithub import Issue, GitHub
+
+from lilac2.typing import Maintainer
 
 from . import git
 from . import config
@@ -77,6 +79,65 @@ def parse_issue_text(text):
 
   return issuetype, packages
 
+async def find_affecting_deps(
+  packages: List[str],
+) -> Dict[str, List[str]]:
+  ret = {}
+  for pkg in packages:
+    deps = [x for x in 
+            await lilac.find_dependent_packages(pkg)
+            if x not in packages]
+    if deps:
+      ret[pkg] = deps
+  return ret
+
+def annotate_maints(
+  pkg: str, maints: List[Maintainer],
+) -> str:
+  maints_str = ', '.join(
+    f'@{m.github}' for m in maints if m.github)
+  return f'{pkg} ({maints_str})'
+
+async def process_orphaning(
+  author: str, edited: bool,
+  packages: List[str], assignees: Set[str],
+  maintainers: List[Maintainer],
+) -> str:
+  if author != config.MY_GITHUB:
+    try:
+      assignees.remove(author)
+    except KeyError:
+      pass
+
+  comment = ''
+
+  depinfo = await find_affecting_deps(packages)
+  if depinfo:
+    affected: Set[str] = set()
+    for x in depinfo.values():
+      affected.update(x)
+
+    affected_maints = {x: await lilac.find_maintainers(REPO, x)
+                       for x in affected}
+    comment_parts = ['WARNING: other packages will be affected!\n']
+    for p, ds in depinfo.items():
+      ds_str = ', '.join(
+        annotate_maints(d, affected_maints[d]) for d in ds)
+      c = f'* {p} is depended by {ds_str}'
+      comment_parts.append(c)
+    comment += '\n'.join(comment_parts) + '\n\n'
+    assignees.update(
+      y.github for x in affected_maints.values() for y in x
+      if y.github is not None
+    )
+
+  maintainer_githubs = [x.github for x in maintainers if x.github is not None]
+  if not edited and maintainer_githubs != [author]:
+    at_authors = ' '.join(f'@{x}' for x in maintainer_githubs)
+    comment += f'WARNING: Listed packages are maintained by {at_authors} other than the issue author.'
+
+  return comment
+
 async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
                         edited: bool) -> None:
   issue = Issue(issue_dict, gh)
@@ -134,16 +195,10 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
                          if x.github is not None)
 
       if issuetype == IssueType.Orphaning:
-        if issue.author != config.MY_GITHUB:
-          try:
-            assignees.remove(issue.author)
-          except KeyError:
-            pass
-
-        maintainer_githubs = [x.github for x in maintainers if x.github is not None]
-        if not edited and maintainer_githubs != [issue.author]:
-          at_authors = ' '.join(f'@{x}' for x in maintainer_githubs)
-          await issue.comment(f'WARNING: Listed packages are maintained by {at_authors} other than the issue author.')
+        comment = await process_orphaning(
+          issue.author, edited,
+          packages, assignees, maintainers,
+        )
 
       if issuetype == IssueType.OutOfDate and packages:
         try:
