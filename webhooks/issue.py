@@ -165,7 +165,7 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
 
   find_assignees = True
   assignees = set()
-  comment = None
+  comment = ''
   if issuetype == IssueType.PackageRequest:
     find_assignees = False
     labels = ['package-request']
@@ -219,7 +219,11 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
   if labels:
     await issue.add_labels(labels)
   if assignees:
-    await issue.assign(list(assignees))
+    r = await issue.assign(list(assignees))
+    assigned = {x['login'] for x in r['assignees']}
+    failed = assignees - assigned
+    if failed:
+      comment += '\n\nSome outside contributors cannot be assigned: ' + ', '.join(f'@{x}' for x in failed)
   if comment:
     await issue.comment(comment)
 
