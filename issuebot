@@ -112,9 +112,9 @@ Automatically removed.''')
 Already removed.''')
       issue.close()
 
-def remove_repo_depends(name: str, packages: List[str]) -> bool:
+def remove_repo_depends(pkgdir: pathlib.Path, packages: List[str]) -> bool:
   # use ruamel.yaml for yaml manipulation with preserving indents and comments
-  lilac_yaml_path = os.path.join(REPO, name, 'lilac.yaml')
+  lilac_yaml_path = pkgdir / 'lilac.yaml'
 
   with open(lilac_yaml_path) as f:
     lilac_yaml, indent, block_seq_indent = load_yaml_guess_indent(f.read())
@@ -140,7 +140,7 @@ def remove_repo_depends(name: str, packages: List[str]) -> bool:
     with open(lilac_yaml_path, 'w') as f:
       round_trip_dump(lilac_yaml, stream=f, indent=indent,
                       block_seq_indent=block_seq_indent)
-    subprocess.check_call(['git', 'add', name], cwd=REPO)
+    subprocess.check_call(['git', 'add', os.path.basename(pkgdir)], cwd=REPO)
     return True
   else:
     return False
@@ -171,8 +171,8 @@ lilac can't parse out the relevant package names, please handle manually.''')
     with file_lock(LILAC_LOCK):
       subprocess.check_output(['git', 'pull'], cwd=REPO)
 
-      for name in iter_pkgdir(pathlib.Path(REPO)):
-        if remove_repo_depends(name, packages):
+      for pkgdir in iter_pkgdir(pathlib.Path(REPO)):
+        if remove_repo_depends(pkgdir, packages):
           changed = True
 
       for name in packages:
