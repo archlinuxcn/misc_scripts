@@ -3,6 +3,7 @@
 import datetime
 import sys
 import os
+import pathlib
 import subprocess
 import shutil
 from typing import List
@@ -12,6 +13,8 @@ from ruamel.yaml.util import load_yaml_guess_indent
 
 from github import GitHub
 from myutils import file_lock
+
+from lilac2.lilacyaml import iter_pkgdir
 
 from webhooks.issue import parse_issue_text
 
@@ -168,9 +171,7 @@ lilac can't parse out the relevant package names, please handle manually.''')
     with file_lock(LILAC_LOCK):
       subprocess.check_output(['git', 'pull'], cwd=REPO)
 
-      for name in os.listdir(REPO):
-        if not os.path.isdir(os.path.join(REPO, name)):
-            continue
+      for name in iter_pkgdir(pathlib.Path(REPO)):
         if remove_repo_depends(name, packages):
           changed = True
 
@@ -188,14 +189,14 @@ lilac can't parse out the relevant package names, please handle manually.''')
         if len(packages) > ORPHANED_PACKAGES_BREAKDOWN:
           affected = "\n".join(f"- {x}" for x in packages)
           msg = f'''Removing {len(packages)} packages \
-because they are already in official repos.
+and corresponding repo_depends entries because they are already in official repos.
 
 Affected packages:
 {affected}
 
 closes #{issue.number}'''
         else:
-          msg = f'{", ".join(packages)}: in official repos, removing. closes #{issue.number}'
+          msg = f'{", ".join(packages)}: in official repos, removing packages and repo_depends entries if any. closes #{issue.number}'
         subprocess.check_output(['git', 'commit', '-m', msg], cwd=REPO)
         git_push()
 
