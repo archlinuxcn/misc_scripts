@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+from __future__ import annotations
+
 import datetime
 import sys
 import os
@@ -18,6 +20,7 @@ from lilac2.lilacyaml import iter_pkgdir
 
 from webhooks.issue import parse_issue_text
 from webhooks.util import OrphanResult, annotate_maints, Dependent
+from webhooks import lilac
 
 REQUEST_WAITING_TIME = datetime.timedelta(days=30)
 ORPHANING_WAITING_TIME = datetime.timedelta(days=14)
@@ -54,8 +57,14 @@ This request has been waiting for too long, closing.''')
       issue.close()
 
 def process_one_orphaned(name: str) -> OrphanResult:
+  p = REPO / name
+  dependents = lilac.find_dependent_packages_ext(name)
+  if dependents:
+    remove_maintainers(p)
+    return OrphanResult.Depended(dependents)
+
   try:
-    shutil.rmtree(REPO / name)
+    shutil.rmtree(p)
   except FileNotFoundError:
     return OrphanResult.NotFound
   else:
@@ -169,6 +178,24 @@ def remove_repo_depends(pkgdir: pathlib.Path, packages: List[str]) -> bool:
     return True
   else:
     return False
+
+def remove_maintainers(pkgdir: pathlib.Path) -> None:
+  # use ruamel.yaml for yaml manipulation with preserving indents and comments
+  lilac_yaml_path = pkgdir / 'lilac.yaml'
+
+  with open(lilac_yaml_path) as f:
+    lilac_yaml, indent, block_seq_indent = load_yaml_guess_indent(f.read())
+
+  maintainers = lilac_yaml.get('maintainers', [])
+  if not maintainers:
+    return
+
+  lilac_yaml['maintainers'] = []
+
+  with open(lilac_yaml_path, 'w') as f:
+    round_trip_dump(lilac_yaml, stream=f, indent=indent,
+                    block_seq_indent=block_seq_indent)
+  subprocess.check_call(['git', 'add', pkgdir.name], cwd=REPO)
 
 def process_in_official(
   gh: GitHub, repo: str, now: datetime.datetime,

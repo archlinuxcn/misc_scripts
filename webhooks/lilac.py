@@ -15,9 +15,9 @@ async def find_maintainers(
 ) -> List[Maintainer]:
   loop = asyncio.get_event_loop()
   return await loop.run_in_executor(
-    None, _find_maintainers_sync, pkgbase)
+    None, find_maintainers_sync, pkgbase)
 
-def _find_maintainers_sync(
+def find_maintainers_sync(
   pkgbase: str,
 ) -> List[Maintainer]:
   ly = load_lilac_yaml(REPODIR / pkgbase)
