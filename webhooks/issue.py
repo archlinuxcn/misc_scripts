@@ -229,7 +229,8 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
   if comment:
     await issue.comment(comment)
 
-  if issue.closed:
+  if issue.closed and issue.closed_by == config.MY_GITHUB \
+     and 'request-failed' not in issue.labels:
     await issue.reopen()
 
 REPO = lilac.get_repo(config.LILAC_INI)
