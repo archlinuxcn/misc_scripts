@@ -6,8 +6,7 @@ import os
 import pathlib
 import subprocess
 import shutil
-from typing import List
-from enum import auto, Enum
+from typing import List, Literal, Optional
 
 from ruamel.yaml import round_trip_dump
 from ruamel.yaml.util import load_yaml_guess_indent
@@ -18,6 +17,7 @@ from myutils import file_lock
 from lilac2.lilacyaml import iter_pkgdir
 
 from webhooks.issue import parse_issue_text
+from webhooks.util import OrphanResult, annotate_maints, Dependent
 
 REQUEST_WAITING_TIME = datetime.timedelta(days=30)
 ORPHANING_WAITING_TIME = datetime.timedelta(days=14)
@@ -53,15 +53,11 @@ This request has been waiting for too long, closing.''')
       issue.add_labels(['request-failed'])
       issue.close()
 
-class OrphanResult(Enum):
-  Removed = auto()
-  NonExistent = auto()
-
 def process_one_orphaned(name: str) -> OrphanResult:
   try:
     shutil.rmtree(REPO / name)
   except FileNotFoundError:
-    return OrphanResult.NonExistent
+    return OrphanResult.NotFound
   else:
     subprocess.check_call(['git', 'add', name], cwd=REPO)
     return OrphanResult.Removed
@@ -84,42 +80,62 @@ lilac can't parse out the relevant package names, please handle manually.''')
       issue.add_labels(['seen-by-lilac'])
       continue
 
-    changed = False
+    results = {}
 
     with file_lock(LILAC_LOCK):
       subprocess.check_output(['git', 'pull'], cwd=REPO)
 
       for name in packages:
-        if process_one_orphaned(name) != OrphanResult.NonExistent:
-          changed = True
+        results[name] = process_one_orphaned(name)
 
-      if changed:
-        msg = None
-        if len(packages) > ORPHANED_PACKAGES_BREAKDOWN:
-          affected = "\n".join(f"- {x}" for x in packages)
-          msg = f'''Removing {len(packages)} packages \
-due to being orphaned for a long time.
+      removed = [x for x, r in results.items()
+                 if r == OrphanResult.Removed]
+      depended = {x: r.dependents
+                  for x, r in results.items()
+                  if r.ty == 'Depended'}
+      notfound = [x for x, r in results.items()
+                  if r == OrphanResult.NotFound]
 
-Affected packages:
-{affected}
-
-closes #{issue.number}'''
+      if removed or depended:
+        if not depended and len(removed) <= ORPHANED_PACKAGES_BREAKDOWN:
+          # simple case
+          msg = f'{", ".join(removed)}: orphaned, removing. closes #{issue.number}'
         else:
-          msg = f'{", ".join(packages)}: orphaned for a long time, removing. closes #{issue.number}'
+          removed_pkg_msg = ''.join(f'- {x}\n' for x in removed)
+          if depended:
+            def ds_str(ds: List[Dependent]) -> str:
+              return ', '.join(
+                annotate_maints(x.pkgbase, x.maintainers)
+                for x in ds
+              )
+            depended_pkg_msg = ''.join(f'- {x}: depended by {ds_str(ds)}\n' for x, ds in depended.items())
+          else:
+            depended_pkg_msg = ''
+          notfound_pkg_msg = ''.join(f'- {x}\n' for x in notfound)
+
+          removed_msg = f'Removing {len(removed)} orphaned packages:\n\n{removed_pkg_msg}\n'
+          depended_msg = f'Removing maintainers from {len(depended)} orphaned packages:\n\n{depended_pkg_msg}\n'
+
+          if removed and not depended:
+            head_msg = removed_msg
+          elif depended:
+            head_msg = depended_msg
+          else:
+            head_msg = (f'Processing {len(removed) + len(depended)} orphaned packages:\n\n'
+                        + removed_msg + depended_msg)
+          if notfound:
+            head_msg += f'The following packages are not found:\n\n{notfound_pkg_msg}'
+
+          close_msg = f'closes #{issue.number}'
+
+        msg = head_msg + close_msg
         subprocess.check_output(['git', 'commit', '-m', msg], cwd=REPO)
         git_push()
 
-    if changed:
-      issue.comment('''\
-已自动删除。
-
-Automatically removed.''')
-    else:
-      issue.comment('''\
-已被删除。
-
-Already removed.''')
+    if not removed and not depended:
+      issue.comment('相关包已被删除。\n\nPackages already removed.')
       issue.close()
+      # else we've closed the issue by a commit
 
 def remove_repo_depends(pkgdir: pathlib.Path, packages: List[str]) -> bool:
   # use ruamel.yaml for yaml manipulation with preserving indents and comments

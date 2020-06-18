@@ -13,6 +13,7 @@ from . import git
 from . import config
 from . import files
 from . import lilac
+from .util import annotate_maints
 
 logger = logging.getLogger(__name__)
 
@@ -92,13 +93,6 @@ async def find_affecting_deps(
     if deps:
       ret[pkg] = deps
   return ret
-
-def annotate_maints(
-  pkg: str, maints: List[Maintainer],
-) -> str:
-  maints_str = ', '.join(
-    f'@{m.github}' for m in maints if m.github)
-  return f'{pkg} ({maints_str})'
 
 async def process_orphaning(
   author: str, edited: bool,
