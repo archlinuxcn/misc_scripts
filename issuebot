@@ -23,11 +23,11 @@ ORPHANING_WAITING_TIME = datetime.timedelta(days=14)
 OFFICIAL_WAITING_TIME = datetime.timedelta(days=4)
 
 LILAC_LOCK = os.path.expanduser('~/.lilac/.lock')
-REPO = os.path.expanduser('~/archgitrepo/archlinuxcn')
+REPO = pathlib.Path('~/archgitrepo/archlinuxcn').expanduser()
 
 ORPHANED_PACKAGES_BREAKDOWN = 5
 
-def git_push():
+def git_push() -> None:
   while True:
     try:
       subprocess.check_output(['git', 'push'], cwd=REPO)
@@ -77,7 +77,7 @@ lilac can't parse out the relevant package names, please handle manually.''')
 
       for name in packages:
         try:
-          shutil.rmtree(os.path.join(REPO, name))
+          shutil.rmtree(REPO / name)
         except FileNotFoundError:
           pass
         else:
@@ -140,7 +140,7 @@ def remove_repo_depends(pkgdir: pathlib.Path, packages: List[str]) -> bool:
     with open(lilac_yaml_path, 'w') as f:
       round_trip_dump(lilac_yaml, stream=f, indent=indent,
                       block_seq_indent=block_seq_indent)
-    subprocess.check_call(['git', 'add', os.path.basename(pkgdir)], cwd=REPO)
+    subprocess.check_call(['git', 'add', pkgdir.name], cwd=REPO)
     return True
   else:
     return False
@@ -171,13 +171,13 @@ lilac can't parse out the relevant package names, please handle manually.''')
     with file_lock(LILAC_LOCK):
       subprocess.check_output(['git', 'pull'], cwd=REPO)
 
-      for pkgdir in iter_pkgdir(pathlib.Path(REPO)):
+      for pkgdir in iter_pkgdir(REPO):
         if remove_repo_depends(pkgdir, packages):
           changed = True
 
       for name in packages:
         try:
-          shutil.rmtree(os.path.join(REPO, name))
+          shutil.rmtree(REPO / name)
         except FileNotFoundError:
           pass
         else:

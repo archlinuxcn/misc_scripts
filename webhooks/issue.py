@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import re
 from enum import Enum
 import logging
-from typing import Dict, Any, List, Set
+from typing import Dict, Any, List, Set, Tuple, Optional
 
 from agithub import Issue, GitHub
 
@@ -39,7 +41,7 @@ Lilac still cannot parse this issue, please check against the template. Please u
 
 Lilac 依旧无法解析此问题报告，请对照模板检查。请更新，然后我会重新打开这个问题。'''
 
-def parse_issue_text(text):
+def parse_issue_text(text: str) -> Tuple[Optional[IssueType], List[str]]:
   st = _ParseState.init
   skipping = False
 
@@ -70,11 +72,11 @@ def parse_issue_text(text):
           issuetype = _TypeDescMap.get(key)
           break
     elif st == _ParseState.packages:
-      firstword = _PkgPattern.search(line)
-      if firstword:
+      firstword_m = _PkgPattern.search(line)
+      if firstword_m:
         if line.startswith('* [x] '):
           continue
-        firstword = firstword.group()
+        firstword = firstword_m.group()
         packages.append(firstword)
 
   return issuetype, packages
