@@ -6,7 +6,7 @@ import os
 import pathlib
 import subprocess
 import shutil
-from typing import List, Literal, Optional
+from typing import List
 
 from ruamel.yaml import round_trip_dump
 from ruamel.yaml.util import load_yaml_guess_indent

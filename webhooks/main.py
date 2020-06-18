@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 
 import json
 import hmac
@@ -8,12 +8,8 @@ import os
 from aiohttp import web
 
 from agithub import GitHub
-from expiringdict import ExpiringDict
 
 from . import issue
-from . import lilac
-from . import config
-from . import git
 
 logger = logging.getLogger(__name__)
 
@@ -61,57 +57,8 @@ class IssueHandler:
     await issue.process_issue(
       self.gh, data['issue'], data['action'] == 'edited')
 
-class MaintainersHandler:
-  def __init__(self):
-    self.repo = lilac.get_repo(config.LILAC_INI)
-    self._cache = ExpiringDict(60)
-
-  async def get_single_result(self, pkgbase):
-    if pkgbase in self._cache:
-      logging.info('maintainers cache hit for pkgbase %s', pkgbase)
-      return self._cache[pkgbase]
-
-    maintainers = await lilac.find_maintainers(self.repo, pkgbase)
-    r = [{
-      'name': m.name,
-      'email': m.email,
-      'github': m.github,
-    } for m in maintainers]
-    self._cache[pkgbase] = r
-    return r
-
-  async def __call__(self, request: web.Request) -> web.Response:
-    q = request.query.get('q')
-    if q:
-      packages = q.split(',')
-    else:
-      packages = []
-
-    ret = []
-
-    self._cache.expire()
-    await git.may_pull_repo(config.REPODIR, config.REPO_URL)
-
-    for pkgbase in packages:
-      try:
-        ms = await self.get_single_result(pkgbase)
-        ret.append({
-          'pkgbase': pkgbase,
-          'maintainers': ms,
-        })
-      except FileNotFoundError:
-        ret.append({
-          'pkgbase': pkgbase,
-          'error': 'not found',
-        })
-
-    res = web.json_response({'result': ret})
-    res.headers['Cache-Control'] = 'public, max-age=60'
-    return res
-
 def setup_app(app, secret, token):
   app.router.add_post('/lilac/issue', IssueHandler(secret, token))
-  app.router.add_get('/lilac/find_maintainers', MaintainersHandler())
 
 def main():
   import argparse

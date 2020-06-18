@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-from typing import List, Literal, Optional, NamedTuple
+from typing import (
+  List, Literal, Optional, NamedTuple,
+  NewType,
+)
 
-from lilac2.typing import Maintainer
+Maintainer = NewType('Maintainer', str)
 
 def annotate_maints(
   pkg: str, maints: List[Maintainer],
 ) -> str:
-  maints_str = ', '.join(
-    f'@{m.github}' for m in maints if m.github)
+  maints_str = ', '.join(f'@{m}' for m in maints)
   return f'{pkg} ({maints_str})'
 
 class Dependent(NamedTuple):

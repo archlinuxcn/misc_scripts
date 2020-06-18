@@ -7,13 +7,11 @@ from typing import Dict, Any, List, Set, Tuple, Optional
 
 from agithub import Issue, GitHub
 
-from lilac2.typing import Maintainer
-
 from . import git
 from . import config
 from . import files
 from . import lilac
-from .util import annotate_maints
+from .util import annotate_maints, Maintainer
 
 logger = logging.getLogger(__name__)
 
@@ -113,8 +111,7 @@ async def process_orphaning(
     for x in depinfo.values():
       affected.update(x)
 
-    affected_maints = {x: await lilac.find_maintainers(REPO, x)
-                       for x in affected}
+    affected_maints = {x: await lilac.find_maintainers(x) for x in affected}
     comment_parts = ['WARNING: other packages will be affected!\n']
     for p, ds in depinfo.items():
       ds_str = ', '.join(
@@ -123,11 +120,10 @@ async def process_orphaning(
       comment_parts.append(c)
     comment += '\n'.join(comment_parts) + '\n\n'
     assignees.update(
-      y.github for x in affected_maints.values() for y in x
-      if y.github is not None
+      m for x in affected_maints.values() for m in x
     )
 
-  maintainer_githubs = [x.github for x in maintainers if x.github is not None]
+  maintainer_githubs = [x for x in maintainers]
   if not edited and maintainer_githubs != [author]:
     at_authors = ' '.join(f'@{x}' for x in maintainer_githubs)
     comment += f'WARNING: Listed packages are maintained by {at_authors} other than the issue author.'
@@ -183,12 +179,11 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
 
       for pkg in packages:
         try:
-          maintainers = await lilac.find_maintainers(REPO, pkg)
+          maintainers = await lilac.find_maintainers(pkg)
         except FileNotFoundError:
           continue
 
-        assignees.update(x.github for x in maintainers
-                         if x.github is not None)
+        assignees.update(x for x in maintainers)
 
       if issuetype == IssueType.Orphaning:
         comment = await process_orphaning(
@@ -226,5 +221,3 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
   if issue.closed and issue.closed_by == config.MY_GITHUB \
      and 'request-failed' not in issue.labels:
     await issue.reopen()
-
-REPO = lilac.get_repo(config.LILAC_INI)
