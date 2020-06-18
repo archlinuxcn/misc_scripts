@@ -7,6 +7,7 @@ import pathlib
 import subprocess
 import shutil
 from typing import List
+from enum import auto, Enum
 
 from ruamel.yaml import round_trip_dump
 from ruamel.yaml.util import load_yaml_guess_indent
@@ -52,6 +53,19 @@ This request has been waiting for too long, closing.''')
       issue.add_labels(['request-failed'])
       issue.close()
 
+class OrphanResult(Enum):
+  Removed = auto()
+  NonExistent = auto()
+
+def process_one_orphaned(name: str) -> OrphanResult:
+  try:
+    shutil.rmtree(REPO / name)
+  except FileNotFoundError:
+    return OrphanResult.NonExistent
+  else:
+    subprocess.check_call(['git', 'add', name], cwd=REPO)
+    return OrphanResult.Removed
+
 def process_orphaned_packages(
   gh: GitHub, repo: str, now: datetime.datetime,
 ) -> None:
@@ -76,12 +90,7 @@ lilac can't parse out the relevant package names, please handle manually.''')
       subprocess.check_output(['git', 'pull'], cwd=REPO)
 
       for name in packages:
-        try:
-          shutil.rmtree(REPO / name)
-        except FileNotFoundError:
-          pass
-        else:
-          subprocess.check_call(['git', 'add', name], cwd=REPO)
+        if process_one_orphaned(name) != OrphanResult.NonExistent:
           changed = True
 
       if changed:
