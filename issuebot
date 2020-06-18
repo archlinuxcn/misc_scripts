@@ -3,11 +3,18 @@
 import datetime
 import sys
 import os
+import pathlib
 import subprocess
 import shutil
+from typing import List
+
+from ruamel.yaml import round_trip_dump
+from ruamel.yaml.util import load_yaml_guess_indent
 
 from github import GitHub
 from myutils import file_lock
+
+from lilac2.lilacyaml import iter_pkgdir
 
 from webhooks.issue import parse_issue_text
 
@@ -105,6 +112,39 @@ Automatically removed.''')
 Already removed.''')
       issue.close()
 
+def remove_repo_depends(pkgdir: pathlib.Path, packages: List[str]) -> bool:
+  # use ruamel.yaml for yaml manipulation with preserving indents and comments
+  lilac_yaml_path = pkgdir / 'lilac.yaml'
+
+  with open(lilac_yaml_path) as f:
+    lilac_yaml, indent, block_seq_indent = load_yaml_guess_indent(f.read())
+
+  repo_depends = lilac_yaml.get('repo_depends', [])
+  if not repo_depends:
+    return False
+
+  # Find out all repo_depends entries to remove. Not using list comprehension
+  # here so that comments are preserved.
+  target_indexes = []
+  for idx, repo_depend in enumerate(repo_depends):
+    if isinstance(repo_depend, dict):
+      repo_depend = list(repo_depend.keys())[0]
+    if repo_depend in packages:
+      target_indexes.append(idx)
+
+  if target_indexes:
+    for target_idx in sorted(target_indexes, reverse=True):
+      del lilac_yaml['repo_depends'][target_idx]
+    if len(lilac_yaml['repo_depends']) == 0:
+      del lilac_yaml['repo_depends']
+    with open(lilac_yaml_path, 'w') as f:
+      round_trip_dump(lilac_yaml, stream=f, indent=indent,
+                      block_seq_indent=block_seq_indent)
+    subprocess.check_call(['git', 'add', os.path.basename(pkgdir)], cwd=REPO)
+    return True
+  else:
+    return False
+
 def process_in_official(
   gh: GitHub, repo: str, now: datetime.datetime,
 ) -> None:
@@ -131,6 +171,10 @@ lilac can't parse out the relevant package names, please handle manually.''')
     with file_lock(LILAC_LOCK):
       subprocess.check_output(['git', 'pull'], cwd=REPO)
 
+      for pkgdir in iter_pkgdir(pathlib.Path(REPO)):
+        if remove_repo_depends(pkgdir, packages):
+          changed = True
+
       for name in packages:
         try:
           shutil.rmtree(os.path.join(REPO, name))
@@ -145,14 +189,14 @@ lilac can't parse out the relevant package names, please handle manually.''')
         if len(packages) > ORPHANED_PACKAGES_BREAKDOWN:
           affected = "\n".join(f"- {x}" for x in packages)
           msg = f'''Removing {len(packages)} packages \
-because they are already in official repos.
+and corresponding repo_depends entries because they are already in official repos.
 
 Affected packages:
 {affected}
 
 closes #{issue.number}'''
         else:
-          msg = f'{", ".join(packages)}: in official repos, removing. closes #{issue.number}'
+          msg = f'{", ".join(packages)}: in official repos, removing packages and repo_depends entries if any. closes #{issue.number}'
         subprocess.check_output(['git', 'commit', '-m', msg], cwd=REPO)
         git_push()
 
