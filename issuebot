@@ -329,8 +329,12 @@ def try_remove_orphaned(gh: GitHub, repo: str) -> None:
     msg = f'Removing orphaned packages {", ".join(pkgs)} that no packages depend on'
   else:
     msg_part = [f'Removing {len(removing_pkgs)} orphaned packages that no packages depend on\n']
+    leftover = removing_pkgs.copy()
     for issue_nr, pkgs in issue_to_pkgs.items():
+      leftover.difference_update(pkgs)
       msg_part.append(f'* {", ".join(pkgs)} (orphaned by #{issue_nr})')
+    if leftover:
+      msg_part.append(f'* {", ".join(leftover)} (no issue found)')
     msg = '\n'.join(msg_part)
 
   subprocess.check_call(
