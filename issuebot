@@ -8,7 +8,9 @@ import os
 import pathlib
 import subprocess
 import shutil
-from typing import List
+from typing import List, Optional, Set
+from collections import defaultdict
+import re
 
 from ruamel.yaml import round_trip_dump
 from ruamel.yaml.util import load_yaml_guess_indent
@@ -16,11 +18,13 @@ from ruamel.yaml.util import load_yaml_guess_indent
 from github import GitHub
 from myutils import file_lock
 
-from lilac2.lilacyaml import iter_pkgdir
+from lilac2.lilacyaml import (
+  iter_pkgdir, load_lilac_yaml,
+)
 
 from webhooks.issue import parse_issue_text
 from webhooks.util import OrphanResult, annotate_maints, Dependent
-from webhooks import lilac
+from webhooks import lilac, config
 
 REQUEST_WAITING_TIME = datetime.timedelta(days=30)
 ORPHANING_WAITING_TIME = datetime.timedelta(days=14)
@@ -58,7 +62,7 @@ This request has been waiting for too long, closing.''')
 
 def process_one_orphaned(name: str) -> OrphanResult:
   p = REPO / name
-  dependents = lilac.find_dependent_packages_ext(name)
+  dependents = lilac.find_dependent_packages_ext(REPO, name)
   if dependents:
     remove_maintainers(p)
     return OrphanResult.Depended(dependents)
@@ -221,7 +225,7 @@ lilac can't parse out the relevant package names, please handle manually.''')
     changed = False
 
     with file_lock(LILAC_LOCK):
-      subprocess.check_output(['git', 'pull'], cwd=REPO)
+      subprocess.check_call(['git', 'pull'], cwd=REPO)
 
       for pkgdir in iter_pkgdir(REPO):
         if remove_repo_depends(pkgdir, packages):
@@ -249,7 +253,7 @@ Affected packages:
 closes #{issue.number}'''
         else:
           msg = f'{", ".join(packages)}: in official repos, removing packages and repo_depends entries if any. closes #{issue.number}'
-        subprocess.check_output(['git', 'commit', '-m', msg], cwd=REPO)
+        subprocess.check_call(['git', 'commit', '-m', msg], cwd=REPO)
         git_push()
 
     if changed:
@@ -264,6 +268,75 @@ Automatically removed.''')
 Already removed.''')
       issue.close()
 
+def _find_orphaning_issue(repo: pathlib.Path, pkg: str) -> Optional[int]:
+  out = subprocess.check_output([
+    'git', 'log', f'--author={config.MYMAIL}',
+    '-1', '--all-match',
+    '--grep=orphaned packages', r'--grep=closes #\d+',
+    '--', f'{pkg}/lilac.yaml',
+  ], text=True, cwd=REPO)
+
+  out = out.strip()
+  m = re.search(r'\bcloses #(\d+)', out)
+  if m:
+    return int(m.group(1))
+  else:
+    return None
+
+def try_remove_orphaned(gh: GitHub, repo: str) -> None:
+  lilac_yamls = {
+    x.name: load_lilac_yaml(x)
+    for x in iter_pkgdir(REPO)
+  }
+  orphaned_pkgs = {
+    pkg
+    for pkg, ly in lilac_yamls.items()
+    if not ly.get('maintainers')
+  }
+
+  depended_pkgs: Set[str] = set()
+  for ly in lilac_yamls.values():
+    depended_pkgs.update(
+      d for d, _ in
+      ly.get('repo_depends', ())
+    )
+
+  removing_pkgs = orphaned_pkgs - depended_pkgs
+  if not removing_pkgs:
+    return
+
+  for pkg in removing_pkgs:
+    shutil.rmtree(REPO / pkg)
+    subprocess.check_call(['git', 'add', pkg], cwd=REPO)
+
+  issue_to_pkgs = defaultdict(list)
+
+  for pkg in removing_pkgs:
+    issue_nr = _find_orphaning_issue(REPO, pkg)
+    if issue_nr:
+      issue_to_pkgs[issue_nr].append(pkg)
+
+  for issue_nr, pkgs in issue_to_pkgs.items():
+    gh.add_issue_comment(
+      repo, issue_nr,
+      f'{", ".join(pkgs)} removed because no packages depend on them any more',
+    )
+
+  if len(issue_to_pkgs) == 1:
+    issue_nr, pkgs = next(iter(issue_to_pkgs.items()))
+    msg = f'Removing packages {", ".join(pkgs)} which were orphaned in #{issue_nr}'
+  elif not issue_to_pkgs:
+    msg = f'Removing orphaned packages {", ".join(pkgs)} that no packages depend on'
+  else:
+    msg_part = [f'Removing {len(removing_pkgs)} orphaned packages that no packages depend on\n']
+    for issue_nr, pkgs in issue_to_pkgs.items():
+      msg_part.append(f'* {", ".join(pkgs)} (orphaned by #{issue_nr})')
+    msg = '\n'.join(msg_part)
+
+  subprocess.check_call(
+    ['git', 'commit', '-m', msg], cwd=REPO)
+  git_push()
+
 def main() -> None:
   token = os.environ['GITHUB_TOKEN']
   gh = GitHub(token)
@@ -273,6 +346,7 @@ def main() -> None:
   process_package_requests(gh, repo, now)
   process_orphaned_packages(gh, repo, now)
   process_in_official(gh, repo, now)
+  try_remove_orphaned(gh, repo)
 
 if __name__ == '__main__':
   main()
