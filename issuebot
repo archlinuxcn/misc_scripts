@@ -271,7 +271,7 @@ Already removed.''')
 def _find_orphaning_issue(repo: pathlib.Path, pkg: str) -> Optional[int]:
   out = subprocess.check_output([
     'git', 'log', f'--author={config.MYMAIL}',
-    '-1', '--all-match',
+    '-1', '-P', '--all-match',
     '--grep=orphaned packages', r'--grep=closes #\d+',
     '--', f'{pkg}/lilac.yaml',
   ], text=True, cwd=REPO)
