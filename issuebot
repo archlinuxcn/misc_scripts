@@ -140,8 +140,8 @@ lilac can't parse out the relevant package names, please handle manually.''')
             head_msg += f'The following packages are not found:\n\n{notfound_pkg_msg}'
 
           close_msg = f'closes #{issue.number}'
+          msg = head_msg + close_msg
 
-        msg = head_msg + close_msg
         subprocess.check_output(['git', 'commit', '-m', msg], cwd=REPO)
         git_push()
 
