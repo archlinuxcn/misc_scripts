@@ -177,11 +177,15 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
     if find_assignees:
       await git.pull_repo(config.REPODIR, config.REPO_URL)
 
+      unmaintained = []
       for pkg in packages:
         try:
           maintainers = await lilac.find_maintainers(pkg)
         except FileNotFoundError:
           continue
+
+        if not maintainers:
+          unmaintained.append(pkg)
 
         assignees.update(x for x in maintainers)
 
@@ -190,6 +194,20 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
           issue.author, edited,
           packages, assignees, maintainers,
         )
+
+      elif unmaintained:
+        depinfo = {
+          pkg: await lilac.find_dependent_packages_ext_async(pkg)
+          for pkg in unmaintained
+        }
+
+        comment_parts = ['NOTE: some affected packages are unmaintained:\n']
+        for p, ds in depinfo.items():
+          ds_str = ', '.join(
+            annotate_maints(d.pkgbase, d.maintainers) for d in ds)
+          c2 = f'* {p} is depended by {ds_str}'
+          comment_parts.append(c2)
+        comment += '\n'.join(comment_parts) + '\n\n'
 
       if issuetype == IssueType.OutOfDate and packages:
         try:
@@ -201,7 +219,7 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
         else:
           logs2 = [line for name, line in logs.items() if name in packages]
           logs3 = '\n'.join(sorted(logs2))
-          comment = f'''build log for auto building out-of-date packages:
+          comment += f'''build log for auto building out-of-date packages:
 ```
 {logs3}
 ```
