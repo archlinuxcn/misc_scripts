@@ -1,0 +1,4 @@
+#!/bin/bash -e
+
+pyflakes webhooks issuebot
+mypy webhooks issuebot
