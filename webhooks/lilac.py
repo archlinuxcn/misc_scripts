@@ -33,7 +33,7 @@ async def find_dependent_packages(
 ) -> List[str]:
   loop = asyncio.get_event_loop()
   dependents = await loop.run_in_executor(
-    None, find_dependent_packages_ext, REPODIR, str)
+    None, find_dependent_packages_ext, REPODIR, pkgbase)
   return [x.pkgbase for x in dependents]
 
 async def find_dependent_packages_ext_async(
