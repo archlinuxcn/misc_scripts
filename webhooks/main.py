@@ -4,6 +4,7 @@ import json
 import hmac
 import logging
 import os
+import asyncio
 
 from aiohttp import web
 
@@ -54,8 +55,8 @@ class IssueHandler:
     if data['action'] not in ['opened', 'edited']:
       return
 
-    await issue.process_issue(
-      self.gh, data['issue'], data['action'] == 'edited')
+    asyncio.ensure_future(issue.process_issue(
+      self.gh, data['issue'], data['action'] == 'edited'))
 
 def setup_app(app, secret, token):
   app.router.add_post('/lilac/issue', IssueHandler(secret, token))
