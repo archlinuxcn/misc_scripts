@@ -70,7 +70,7 @@ def main() -> None:
     ['git', 'pull', '--no-edit', '-q'],
     cwd=repodir, stdout=subprocess.DEVNULL,
   )
-  ours = packages.get_all_managed_packages(repodir)
+  ours = packages.get_all_pkgnames(repodir)
 
   duplicates = official & {x[1] for x in ours}
   logger.debug('duplicates: %r', duplicates)

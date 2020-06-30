@@ -17,8 +17,8 @@ DRY_RUN: bool = False
 
 re_package = re.compile(r'package(?:_(.+))?\s*\(')
 
-def get_all_managed_packages() -> Set[str]:
-  # also see lilac2.packages.get_all_managed_packages
+def get_all_pkgnames() -> Set[str]:
+  # also see lilac2.packages.get_all_pkgnames
   packages: Set[str] = set()
   for pkg in gitrepo_path.glob('*/PKGBUILD'):
 
@@ -115,7 +115,7 @@ def main() -> None:
   if error:
     sys.exit(1)
 
-  all_packages = get_all_managed_packages()
+  all_packages = get_all_pkgnames()
   for d in repo_path.iterdir():
     if d.is_dir():
       clean(d, all_packages)
