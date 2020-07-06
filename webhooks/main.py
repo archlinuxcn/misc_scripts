@@ -11,6 +11,8 @@ from aiohttp import web
 from agithub import GitHub
 
 from . import issue
+from . import config
+from . import git
 
 logger = logging.getLogger(__name__)
 
@@ -48,10 +50,19 @@ class IssueHandler:
     if event_type == 'ping':
       return web.Response(status=204, text='PONG!')
 
+    data = json.loads(body)
+
+    if event_type == 'push':
+      pushed_repo = data['repository']['full_name']
+      if pushed_repo == config.REPO_NAME:
+        asyncio.ensure_future(
+          git.pull_repo(config.REPODIR, config.REPO_NAME)
+        )
+      return
+
     if event_type != 'issues':
       return
 
-    data = json.loads(body)
     if data['action'] not in ['opened', 'edited']:
       return
 

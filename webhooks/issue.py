@@ -7,7 +7,6 @@ from typing import Dict, Any, List, Set, Tuple, Optional
 
 from agithub import Issue, GitHub
 
-from . import git
 from . import config
 from . import files
 from . import lilac
@@ -175,8 +174,6 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
 
   if packages:
     if find_assignees:
-      await git.pull_repo(config.REPODIR, config.REPO_URL)
-
       unmaintained = []
       for pkg in packages:
         try:
