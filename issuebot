@@ -131,7 +131,7 @@ lilac can't parse out the relevant package names, please handle manually.''')
 
           if removed and not depended:
             head_msg = removed_msg
-          elif depended:
+          elif depended and not removed:
             head_msg = depended_msg
           else:
             head_msg = (f'Processing {len(removed) + len(depended)} orphaned packages:\n\n'
