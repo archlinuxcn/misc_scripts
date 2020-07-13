@@ -1,0 +1,111 @@
+#!/usr/bin/python3
+
+from pathlib import Path
+import logging
+from collections import defaultdict
+import time
+from typing import NamedTuple, Tuple, List
+import pickle
+
+import requests
+
+from lilac2 import lilacyaml
+
+logger = logging.getLogger(__name__)
+
+class PkgInfo(NamedTuple):
+  pkgbase: str
+  dl_count: int
+  stats_count: int
+  stats_samples: int
+  stats_popularity: float
+
+DL_COUNT_START = int(time.time() - 3 * 30 * 86400)
+STATS_START = time.strftime(
+  '%Y%m', time.localtime(DL_COUNT_START))
+STATS_END = time.strftime('%Y%m')
+
+s = requests.Session()
+
+def get_dl_count(name: str) -> int:
+  r = s.get(
+    'https://archlinuxcn-pkgstats.imlonghao.workers.dev/',
+    params = {
+      'name': name,
+      'timegt': str(DL_COUNT_START),
+    },
+  )
+  j = r.json()
+  return j['count']
+
+def get_stats_info(name: str) -> Tuple[int, int, float]:
+  r = s.get(
+    f'https://pkgstats.archlinux.de/api/packages/{name}',
+    params = {
+      'startMonth': STATS_START,
+      'endMonth': STATS_END,
+    },
+  )
+  j = r.json()
+  return j['count'], j['samples'], j['popularity']
+
+def gather_data() -> None:
+  repodir = Path('/ldata/src/archgitrepo/archlinuxcn')
+  who_maint_what = defaultdict(list)
+  for pkgdir in lilacyaml.iter_pkgdir(repodir):
+    y = lilacyaml.load_lilac_yaml(pkgdir)
+    name = pkgdir.name
+    # TODO: map pkgbase to pkgnames
+    info = PkgInfo(
+      name,
+      get_dl_count(name),
+      *get_stats_info(name),
+    )
+    logger.info('Queried: %s', info)
+    for m in y.get('maintainers', []):
+      who_maint_what[m['github']].append(info)
+
+  with open('data.save', 'wb') as f:
+    pickle.dump(who_maint_what, f)
+
+def gen_comments() -> List[str]:
+  with open('data.save', 'rb') as f:
+    who_maint_what = pickle.load(f)
+
+  ret = []
+  for who, pkgs in sorted(who_maint_what.items()):
+    msg = [f'@{who}:']
+    pkgs.sort(key=lambda x: x.dl_count + x.stats_count)
+    for x in pkgs:
+        msg.append(f'* [ ] {x.pkgbase} ({x.dl_count}) ({x.stats_count}; {x.stats_popularity})')
+    ret.append('\n'.join(msg))
+
+  return ret
+
+def post_comments(token: str, issue: int) -> None:
+  from github import GitHub
+
+  comments = gen_comments()
+  gh = GitHub(token)
+
+  for c in comments:
+    r = gh.add_issue_comment(
+      'archlinuxcn/repo',
+      issue,
+      c,
+    )
+    r.text
+    # https://developer.github.com/v3/guides/best-practices-for-integrators/#dealing-with-abuse-rate-limits
+    time.sleep(1)
+
+def print_data() -> None:
+  comments = gen_comments()
+  for c in comments:
+    print(c, end='\n\n')
+
+if __name__ == '__main__':
+  from nicelogger import enable_pretty_logging
+  enable_pretty_logging('DEBUG')
+  # gather_data()
+  # print_data()
+  post_comments('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX', 1739)
