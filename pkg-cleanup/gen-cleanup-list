@@ -10,6 +10,7 @@ import pickle
 import requests
 
 from lilac2 import lilacyaml
+from lilac2.packages import get_split_packages
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,10 @@ class PkgInfo(NamedTuple):
   dl_count: int
   stats_count: int
   stats_samples: int
-  stats_popularity: float
+
+  @property
+  def stats_popularity(self) -> float:
+    return 100.0 * self.stats_count / self.stats_samples
 
 DL_COUNT_START = int(time.time() - 3 * 30 * 86400)
 STATS_START = time.strftime(
@@ -38,7 +42,7 @@ def get_dl_count(name: str) -> int:
   j = r.json()
   return j['count']
 
-def get_stats_info(name: str) -> Tuple[int, int, float]:
+def get_stats_info(name: str) -> Tuple[int, int]:
   r = s.get(
     f'https://pkgstats.archlinux.de/api/packages/{name}',
     params = {
@@ -47,7 +51,7 @@ def get_stats_info(name: str) -> Tuple[int, int, float]:
     },
   )
   j = r.json()
-  return j['count'], j['samples'], j['popularity']
+  return j['count'], j['samples']
 
 def gather_data() -> None:
   repodir = Path('/ldata/src/archgitrepo/archlinuxcn')
@@ -55,11 +59,20 @@ def gather_data() -> None:
   for pkgdir in lilacyaml.iter_pkgdir(repodir):
     y = lilacyaml.load_lilac_yaml(pkgdir)
     name = pkgdir.name
-    # TODO: map pkgbase to pkgnames
+    # Accumulate counts for split packages
+    packages = get_split_packages(pkgdir)
+    total_pkgstats_cn_count = 0
+    total_pkgstats_count = 0
+    pkgstats_samples = 0
+    for _, pkgname in packages:
+      total_pkgstats_cn_count += get_dl_count(pkgname)
+      cur_pkgstat_count, pkgstats_samples = get_stats_info(pkgname)
+      total_pkgstats_count += cur_pkgstat_count
     info = PkgInfo(
       name,
-      get_dl_count(name),
-      *get_stats_info(name),
+      total_pkgstats_cn_count,
+      total_pkgstats_count,
+      pkgstats_samples,
     )
     logger.info('Queried: %s', info)
     for m in y.get('maintainers', []):
@@ -77,7 +90,7 @@ def gen_comments() -> List[str]:
     msg = [f'@{who}:']
     pkgs.sort(key=lambda x: x.dl_count + x.stats_count)
     for x in pkgs:
-        msg.append(f'* [ ] {x.pkgbase} ({x.dl_count}) ({x.stats_count}; {x.stats_popularity})')
+        msg.append(f'* [ ] {x.pkgbase} ({x.dl_count}) ({x.stats_count}; {x.stats_popularity:0.2f})')
     ret.append('\n'.join(msg))
 
   return ret
