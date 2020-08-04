@@ -33,13 +33,13 @@ async def file_issues(gh: GitHub, duplicate_info: Dict[str, List[str]]) -> None:
 
 * {pkgbase}
 '''
-  if [pkgbase] != pkgnames:
-    body += '----\n'
-    body += '\n'.join(f'''包 {pkgname} 从属于包基础 {pkgbase}。''' for pkgname in pkgnames)
+    if [pkgbase] != pkgnames:
+      body += '----\n'
+      body += '\n'.join(f'''包 {pkgname} 从属于包基础 {pkgbase}。''' for pkgname in pkgnames)
 
-  # print(body)
-  issue = await gh.create_issue(github_repo, f'{", ".join(pkgnames)} in official repos now', body)
-  print('Created:', issue)
+    # print(body)
+    issue = await gh.create_issue(github_repo, f'{", ".join(pkgnames)} in official repos now', body)
+    print('Created:', issue)
 
 async def get_open_issue_packages(gh: GitHub) -> Set[str]:
   issues = [
