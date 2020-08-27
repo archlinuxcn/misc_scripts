@@ -1,0 +1,49 @@
+#!/usr/bin/python3
+
+from __future__ import annotations
+
+import json
+import asyncio
+from collections import defaultdict
+
+from agithub import GitHub
+
+async def main() -> None:
+  gh = GitHub('XXX')
+  comments = [c async for c in gh.get_issue_comments(
+    'archlinuxcn/repo', 1739)
+  ]
+  removed = defaultdict(list)
+  waiting_user = []
+
+  for comment in comments:
+    lines = comment.body.splitlines()
+    it = iter(lines)
+    l = next(it)
+    if not (l.startswith('@') and l.endswith(':')):
+      continue
+
+    who = l[1:-1]
+    if comment.author not in [who, 'lilydjwg']:
+      continue
+
+    all_unchecked = True
+    for l in it:
+      if not l.startswith('* ['):
+        break
+      checked = l.startswith('* [x] ')
+      name = l.split(']', 1)[1].split(None, 1)[0]
+      if not checked:
+        removed[who].append(name)
+      else:
+        all_unchecked = False
+
+    if all_unchecked:
+      waiting_user.append(who)
+
+  print(removed)
+  with open('/home/lilydjwg/tmpfs/removed.json', 'w') as f:
+    json.dump({'removed': removed, 'waiting_user': waiting_user}, f)
+
+if __name__ == '__main__':
+  asyncio.run(main())

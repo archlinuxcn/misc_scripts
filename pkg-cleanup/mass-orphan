@@ -1,0 +1,50 @@
+#!/usr/bin/python3
+
+import asyncio
+
+from agithub import GitHub
+import yamlutils
+
+async def main():
+  gh = GitHub('XXXX')
+  with open('/home/lilydjwg/tmpfs/update.yaml') as f:
+    removed = yamlutils.load(f)['removed']
+
+  for user, packages in removed.items():
+    if len(packages) < 6:
+      subject = f'orphaning {", ".join(packages)} for {user}'
+      body = ''
+    else:
+      subject = f'orphaning {len(packages)} packages for {user}'
+    body = '''\
+### 问题类型 / Type of issues
+
+* 弃置软件包 / orphaning packages
+
+### 受影响的软件包 / Affected packages
+
+'''
+    body += ''.join(f'* {pkg}\n' for pkg in packages) + '\n----\n\n'
+
+    if len(packages) == 1:
+      body += 'This package was '
+    else:
+      body += 'These packages were '
+    body += 'cleaned up during the 2020 cleanup (#1739). If any maintainers want to adopt '
+    if len(packages) == 1:
+      body += 'it'
+    else:
+      body += 'any of them'
+    body += ", it's time to take action!"
+
+    issue = await gh.create_issue(
+      'archlinuxcn/repo', subject,
+      body = body,
+      labels=['orphaning'],
+    )
+    print(f'{issue} created.')
+    await asyncio.sleep(3)
+    # print(subject, body, sep='\n++++\n', end='\n====\n')
+
+if __name__ == '__main__':
+  asyncio.run(main())

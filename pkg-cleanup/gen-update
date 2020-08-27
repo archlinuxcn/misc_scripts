@@ -1,0 +1,55 @@
+#!/usr/bin/python3
+
+import json
+from pathlib import Path
+import logging
+from collections import defaultdict
+from copy import deepcopy
+
+import yamlutils
+from lilac2 import lilacyaml
+
+logger = logging.getLogger(__name__)
+
+def main():
+  with open('/home/lilydjwg/tmpfs/removed.json') as f:
+    removed = json.load(f)['removed']
+
+  repodir = Path('/ldata/src/archgitrepo/archlinuxcn')
+
+  old = {}
+  for dir in lilacyaml.iter_pkgdir(repodir):
+    y = lilacyaml.load_lilac_yaml(dir)
+    old[dir.name] = {
+      x['github'] for x in y.get('maintainers', {})
+    }
+
+  new = deepcopy(old)
+
+  for user, pkgs in removed.items():
+    for pkg in pkgs:
+      ms = new.get(pkg)
+      if not ms:
+        continue
+
+      ms.remove(user)
+
+  updated = {}
+  pkgs_to_remove = defaultdict(list)
+  for name, maintainers in new.items():
+    if maintainers and old[name] != maintainers:
+      updated[name] = list(old[name] - maintainers)
+    elif not maintainers:
+      for m in old[name]:
+        pkgs_to_remove[m].append(name)
+
+  with open('/home/lilydjwg/tmpfs/update.yaml', 'w') as f:
+    yamlutils.dump({
+      'partly_removed': updated,
+      'removed': dict(pkgs_to_remove),
+    }, f)
+
+if __name__ == '__main__':
+  from nicelogger import enable_pretty_logging
+  enable_pretty_logging('DEBUG')
+  main()
