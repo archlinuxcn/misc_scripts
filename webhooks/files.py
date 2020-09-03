@@ -7,7 +7,7 @@ async def find_build_log(
   repodir: Path, buildlog: Path, packages: Iterable[str],
 ) -> Dict[str, str]:
   autobuild = [x for x in packages
-               if (repodir / x / 'lilac.py').exists()]
+               if (repodir / x / 'lilac.yaml').exists()]
   pkg_re = ' (' + '|'.join(autobuild) + ') '
   cmd = ['grep', '-P', pkg_re, str(buildlog)]
 
