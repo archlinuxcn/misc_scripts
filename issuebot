@@ -283,10 +283,12 @@ def _find_orphaning_issue(repo: pathlib.Path, pkg: str) -> Optional[int]:
   else:
     return None
 
-def try_remove_orphaned(gh: GitHub, repo: str) -> None:
+def find_orphaned_unmaintained_packages(
+  repopath: pathlib.Path,
+) -> Set[str]:
   lilac_yamls = {
     x.name: load_lilac_yaml(x)
-    for x in iter_pkgdir(REPO)
+    for x in iter_pkgdir(repopath)
   }
   orphaned_pkgs = {
     pkg
@@ -299,9 +301,14 @@ def try_remove_orphaned(gh: GitHub, repo: str) -> None:
     depended_pkgs.update(
       d for d, _ in
       ly.get('repo_depends', ())
+      if d not in orphaned_pkgs
     )
 
   removing_pkgs = orphaned_pkgs - depended_pkgs
+  return removing_pkgs
+
+def try_remove_orphaned(gh: GitHub, repo: str) -> None:
+  removing_pkgs = find_orphaned_unmaintained_packages(REPO)
   if not removing_pkgs:
     return
 
