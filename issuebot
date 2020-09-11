@@ -137,7 +137,7 @@ lilac can't parse out the relevant package names, please handle manually.''')
             head_msg = (f'Processing {len(removed) + len(depended)} orphaned packages:\n\n'
                         + removed_msg + depended_msg)
           if notfound:
-            head_msg += f'The following packages are not found:\n\n{notfound_pkg_msg}'
+            head_msg += f'The following packages are not found:\n\n{notfound_pkg_msg}\n'
 
           close_msg = f'closes #{issue.number}'
           msg = head_msg + close_msg
