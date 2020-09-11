@@ -60,9 +60,13 @@ This request has been waiting for too long, closing.''')
       issue.add_labels(['request-failed'])
       issue.close()
 
-def process_one_orphaned(name: str) -> OrphanResult:
+def process_one_orphaned(
+  name: str,
+  all_orphans: List[str],
+) -> OrphanResult:
   p = REPO / name
   dependents = lilac.find_dependent_packages_ext(REPO, name)
+  dependents = [d for d in dependents if d.pkgbase not in all_orphans]
   if dependents:
     remove_maintainers(p)
     return OrphanResult.Depended(dependents)
@@ -99,7 +103,7 @@ lilac can't parse out the relevant package names, please handle manually.''')
       subprocess.check_output(['git', 'pull'], cwd=REPO)
 
       for name in packages:
-        results[name] = process_one_orphaned(name)
+        results[name] = process_one_orphaned(name, packages)
 
       removed = [x for x, r in results.items()
                  if r == OrphanResult.Removed]
