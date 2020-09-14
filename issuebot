@@ -301,11 +301,13 @@ def find_orphaned_unmaintained_packages(
   }
 
   depended_pkgs: Set[str] = set()
-  for ly in lilac_yamls.values():
+  for name, ly in lilac_yamls.items():
+    if name in orphaned_pkgs:
+      continue
     depended_pkgs.update(
       d for d, _ in
       ly.get('repo_depends', ())
-      if d not in orphaned_pkgs
+      if d in orphaned_pkgs
     )
 
   removing_pkgs = orphaned_pkgs - depended_pkgs
