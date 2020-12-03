@@ -132,7 +132,7 @@ async def process_orphaning(
 async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
                         edited: bool) -> None:
   issue = Issue(issue_dict, gh)
-  if issue.number < 700:
+  if issue.number < 700 or 'no-lilac' in issue.labels:
     return
 
   body = issue.body
