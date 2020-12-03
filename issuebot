@@ -8,14 +8,14 @@ import os
 import pathlib
 import subprocess
 import shutil
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Iterator
 from collections import defaultdict
 import re
 
 from ruamel.yaml import round_trip_dump
 from ruamel.yaml.util import load_yaml_guess_indent
 
-from github import GitHub
+from github import GitHub, Issue
 from myutils import file_lock
 
 from lilac2.lilacyaml import (
@@ -47,10 +47,16 @@ def git_push() -> None:
         sys.stdout.write(e.output)
         raise
 
+def filter_issue(it: Iterator[Issue]) -> Iterator[Issue]:
+  for issue in it:
+    if 'no-lilac' in issue.labels:
+      continue
+    yield issue
+
 def process_package_requests(
   gh: GitHub, repo: str, now: datetime.datetime,
 ) -> None:
-  for issue in gh.get_repo_issues(repo, labels='package-request'):
+  for issue in filter_issue(gh.get_repo_issues(repo, labels='package-request')):
     if now - issue.updated_at > REQUEST_WAITING_TIME:
       print(f'Marking {issue} as failed')
       issue.comment('''\
@@ -82,7 +88,7 @@ def process_one_orphaned(
 def process_orphaned_packages(
   gh: GitHub, repo: str, now: datetime.datetime,
 ) -> None:
-  issues = [issue for issue in gh.get_repo_issues(repo, labels='orphaning')
+  issues = [issue for issue in filter_issue(gh.get_repo_issues(repo, labels='orphaning'))
             if now - issue.updated_at > ORPHANING_WAITING_TIME
             and 'seen-by-lilac' not in issue.labels]
 
@@ -209,8 +215,8 @@ def process_in_official(
   gh: GitHub, repo: str, now: datetime.datetime,
 ) -> None:
   issues = [
-    issue for issue in gh.get_repo_issues(
-      repo, labels='in-official-repos')
+    issue for issue in filter_issue(gh.get_repo_issues(
+      repo, labels='in-official-repos'))
     if now - issue.updated_at > OFFICIAL_WAITING_TIME
     and 'seen-by-lilac' not in issue.labels
   ]
