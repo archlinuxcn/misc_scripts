@@ -229,7 +229,7 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
     assigned = {x['login'] for x in r['assignees']}
     failed = assignees - assigned
     if failed:
-      comment += '\n\nSome outside contributors cannot be assigned: ' + ', '.join(f'@{x}' for x in failed)
+      comment += '\n\nSome maintainers (perhaps outside contributors) cannot be assigned: ' + ', '.join(f'@{x}' for x in failed)
   if comment:
     await issue.comment(comment)
 
