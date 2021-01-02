@@ -122,9 +122,8 @@ async def process_orphaning(
       m for x in affected_maints.values() for m in x
     )
 
-  maintainer_githubs = [x for x in maintainers]
-  if not edited and maintainer_githubs != [author]:
-    at_authors = ' '.join(f'@{x}' for x in maintainer_githubs)
+  if not edited and author not in maintainers:
+    at_authors = ' '.join(f'@{x}' for x in maintainers)
     comment += f'WARNING: Listed packages are maintained by {at_authors} other than the issue author.'
 
   return comment
