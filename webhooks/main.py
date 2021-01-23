@@ -28,7 +28,7 @@ class IssueHandler:
     m.update(body)
     return 'sha1=' + m.hexdigest()
 
-  async def __call__(self, request):
+  async def post(self, request):
     if not self.gh:
       self.gh = GitHub(self.token)
 
@@ -70,7 +70,8 @@ class IssueHandler:
       self.gh, data['issue'], data['action'] == 'edited'))
 
 def setup_app(app, secret, token):
-  app.router.add_post('/lilac/issue', IssueHandler(secret, token))
+  handler = IssueHandler(secret, token)
+  app.router.add_post('/lilac/issue', handler.post)
 
 def main():
   import argparse
