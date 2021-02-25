@@ -20,7 +20,7 @@ re_package = re.compile(r'package(?:_(.+))?\s*\(')
 def get_all_pkgnames() -> Set[str]:
   # also see lilac2.packages.get_all_pkgnames
   packages: Set[str] = set()
-  for pkg in gitrepo_path.glob('*/PKGBUILD'):
+  for pkg in gitrepo_path.glob('*/lilac.yaml'):
 
     pkgfile = pkg.with_name('package.list')
     if pkgfile.exists():
