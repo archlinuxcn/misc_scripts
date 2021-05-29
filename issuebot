@@ -238,8 +238,12 @@ lilac can't parse out the relevant package names, please handle manually.''')
       subprocess.check_call(['git', 'pull'], cwd=REPO)
 
       for pkgdir in iter_pkgdir(REPO):
-        if remove_repo_depends(pkgdir, packages):
-          changed = True
+        try:
+          if remove_repo_depends(pkgdir, packages):
+            changed = True
+        except Exception:
+          print(f'Error processing {pkgdir}:', file=sys.stderr)
+          raise
 
       for name in packages:
         try:
