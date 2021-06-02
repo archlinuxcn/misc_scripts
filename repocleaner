@@ -17,30 +17,42 @@ DRY_RUN: bool = False
 
 re_package = re.compile(r'package(?:_(.+))?\s*\(')
 
+def search_pkgbuild_for_pkgname(
+  pkgbuild: Path,
+) -> Set[str]:
+  ret = set()
+  try:
+    with open(pkgbuild) as f:
+      for l in f:
+        l = l.strip()
+        m = re_package.match(l)
+        if m:
+          if m.group(1):
+            ret.add(m.group(1))
+          else:
+            ret.add(pkgbuild.parent.name)
+  except FileNotFoundError:
+    pass
+
+  return ret
+
 def get_all_pkgnames() -> Set[str]:
   # also see lilac2.packages.get_all_pkgnames
   packages: Set[str] = set()
-  for pkg in gitrepo_path.glob('*/lilac.yaml'):
+  for ly in gitrepo_path.glob('*/lilac.yaml'):
 
-    pkgfile = pkg.with_name('package.list')
+    pkgfile = ly.with_name('package.list')
     if pkgfile.exists():
       with open(pkgfile) as f:
         packages.update(f.read().split())
         continue
 
-    found = False
-    with open(pkg) as f:
-      for l in f:
-        l = l.strip()
-        m = re_package.match(l)
-        if m:
-          found = True
-          if m.group(1):
-            packages.add(m.group(1))
-          else:
-            packages.add(pkg.parent.name)
-    if not found:
-      packages.add(pkg.parent.name)
+    pkgbuild = ly.with_name('PKGBUILD')
+    new = search_pkgbuild_for_pkgname(pkgbuild)
+    if new:
+      packages.update(new)
+    else:
+      packages.add(pkgbuild.parent.name)
 
   return packages
 
