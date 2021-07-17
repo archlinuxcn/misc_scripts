@@ -9,6 +9,8 @@ import pickle
 
 import requests
 
+from myutils import restart_if_failed
+
 from lilac2 import lilacyaml
 from lilac2.packages import get_split_packages
 
@@ -65,8 +67,10 @@ def gather_data() -> None:
     total_pkgstats_count = 0
     pkgstats_samples = 0
     for _, pkgname in packages:
-      total_pkgstats_cn_count += get_dl_count(pkgname)
-      cur_pkgstat_count, pkgstats_samples = get_stats_info(pkgname)
+      total_pkgstats_cn_count += restart_if_failed(
+        get_dl_count, 5, (pkgname,))
+      cur_pkgstat_count, pkgstats_samples = restart_if_failed(
+        get_stats_info, 5, (pkgname,))
       total_pkgstats_count += cur_pkgstat_count
     info = PkgInfo(
       name,
