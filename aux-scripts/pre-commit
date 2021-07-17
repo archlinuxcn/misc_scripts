@@ -1,8 +1,8 @@
 #!/bin/bash -e
 
 pyflakes webhooks issuebot in-official-cleaner repocleaner
-mypy webhooks
+python "$(which mypy)" webhooks
 
 for f in issuebot in-official-cleaner repocleaner; do
-  mypy "$f"
+  python "$(which mypy)" "$f"
 done
