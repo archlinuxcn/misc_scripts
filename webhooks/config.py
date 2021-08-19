@@ -3,6 +3,8 @@ from pathlib import Path
 MY_GITHUB = 'lilacbot'
 REPO_NAME = 'archlinuxcn/repo'
 
+ADMIN_GH = 'lilydjwg'
+
 REPO_URL = f'git@github.com:{REPO_NAME}.git'
 MYMAIL = 'lilac@build.archlinuxcn.org'
 REPODIR = Path('/data/archgitrepo-webhook/archlinuxcn').expanduser()

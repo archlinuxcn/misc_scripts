@@ -122,7 +122,7 @@ async def process_orphaning(
       m for x in affected_maints.values() for m in x
     )
 
-  if not edited and author not in maintainers:
+  if not edited and author not in maintainers and author != config.ADMIN_GH:
     at_authors = ' '.join(f'@{x}' for x in maintainers)
     comment += f'WARNING: Listed packages are maintained by {at_authors} other than the issue author.'
 
