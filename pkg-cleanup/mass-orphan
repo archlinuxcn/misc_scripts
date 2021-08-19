@@ -34,12 +34,6 @@ def process_partly_removed(partly) -> None:
   for pkg, maintainers in partly.items():
     remove_maintainer(pkg, maintainers)
 
-async def main() -> None:
-  with open('/home/lilydjwg/tmpfs/update.yaml') as f:
-    updates = yamlutils.load(f)
-  # process_partly_removed(updates['partly_removed'])
-  await process_full_removed(updates['removed'])
-
 async def process_full_removed(removed):
   gh = GitHub(const.GITHUB_TOEKN)
   for user, packages in removed.items():
@@ -77,6 +71,12 @@ async def process_full_removed(removed):
     print(f'{issue} created.')
     await asyncio.sleep(3)
     # print(subject, body, sep='\n++++\n', end='\n====\n')
+
+async def main() -> None:
+  with open('/home/lilydjwg/tmpfs/update.yaml') as f:
+    updates = yamlutils.load(f)
+  process_partly_removed(updates['partly_removed'])
+  # await process_full_removed(updates['removed'])
 
 if __name__ == '__main__':
   asyncio.run(main())
