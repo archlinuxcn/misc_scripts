@@ -5,20 +5,47 @@ from pathlib import Path
 import logging
 from collections import defaultdict
 from copy import deepcopy
+import time
+import subprocess
 
 import yamlutils
 from lilac2 import lilacyaml
+import const
 
 logger = logging.getLogger(__name__)
+
+REPODIR = Path(const.REPODIR)
+lilac_mail = 'lilac@build.archlinuxcn.org'
+
+def check_last_git_update(pkg):
+  cmd = [
+    "git", "log", "--format=%at %ae", "--", pkg,
+  ]
+
+  p = subprocess.Popen(
+    cmd, stdout=subprocess.PIPE, universal_newlines=True,
+    cwd = REPODIR,
+  )
+
+  try:
+    stdout = p.stdout
+    while True:
+      line = stdout.readline()
+      t, email = line.rstrip().split(None, 1)
+      if int(t) < time.time() - 30 * 86400:
+        return False
+      if email == lilac_mail:
+        continue
+      return True
+  finally:
+    p.terminate()
 
 def main():
   with open('/home/lilydjwg/tmpfs/removed.json') as f:
     removed = json.load(f)['removed']
 
-  repodir = Path('/ldata/src/archgitrepo/archlinuxcn')
-
   old = {}
-  for dir in lilacyaml.iter_pkgdir(repodir):
+  for dir in lilacyaml.iter_pkgdir(REPODIR):
     y = lilacyaml.load_lilac_yaml(dir)
     old[dir.name] = {
       x['github'] for x in y.get('maintainers', {})
@@ -32,7 +59,10 @@ def main():
       if not ms:
         continue
 
-      ms.remove(user)
+      try:
+        ms.remove(user)
+      except KeyError:
+        pass
 
   updated = {}
   pkgs_to_remove = defaultdict(list)
@@ -42,6 +72,11 @@ def main():
     elif not maintainers:
       for m in old[name]:
         pkgs_to_remove[m].append(name)
+
+  for pkgs in pkgs_to_remove.values():
+    for pkg in pkgs[:]:
+      if check_last_git_update(pkg):
+        pkgs.remove(pkg)
 
   with open('/home/lilydjwg/tmpfs/update.yaml', 'w') as f:
     yamlutils.dump({

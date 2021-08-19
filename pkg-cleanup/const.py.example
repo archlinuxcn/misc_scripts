@@ -1,0 +1,4 @@
+GITHUB_TOEKN = 'ghp_xxxxxxxxx'
+ISSUE_NR = 2364
+CLEANUP_NAME = '2021'
+REPODIR = '/ldata/src/archgitrepo/archlinuxcn'

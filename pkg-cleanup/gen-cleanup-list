@@ -56,7 +56,7 @@ def get_stats_info(name: str) -> Tuple[int, int]:
   return j['count'], j['samples']
 
 def gather_data() -> None:
-  repodir = Path('/ldata/src/archgitrepo/archlinuxcn')
+  repodir = Path(const.REPODIR)
   who_maint_what = defaultdict(list)
   for pkgdir in lilacyaml.iter_pkgdir(repodir):
     y = lilacyaml.load_lilac_yaml(pkgdir)
@@ -125,4 +125,5 @@ if __name__ == '__main__':
   enable_pretty_logging('DEBUG')
   # gather_data()
   # print_data()
-  post_comments('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX', 1739)
+  import const
+  post_comments(const.GITHUB_TOEKN, const.ISSUE_NR)

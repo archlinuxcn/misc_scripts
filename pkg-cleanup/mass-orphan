@@ -1,15 +1,47 @@
 #!/usr/bin/python3
 
 import asyncio
+import subprocess
+from pathlib import Path
+
+from ruamel.yaml import YAML
 
 from agithub import GitHub
 import yamlutils
 
-async def main():
-  gh = GitHub('XXXX')
-  with open('/home/lilydjwg/tmpfs/update.yaml') as f:
-    removed = yamlutils.load(f)['removed']
+import const
 
+def remove_maintainer(pkg: str, maintainers: list[str]) -> None:
+  lilac_yaml_path = Path(const.REPODIR) / pkg / 'lilac.yaml'
+
+  # use ruamel.yaml for yaml manipulation whith preserving comments
+  yaml = YAML()
+  with open(lilac_yaml_path) as f:
+    lilac_yaml = yaml.load(f.read())
+
+  old_maintainers = lilac_yaml['maintainers']
+  removing_indices = [i for i, m in enumerate(old_maintainers)
+                      if m['github'] not in maintainers]
+  for idx in reversed(removing_indices):
+    del old_maintainers[idx]
+
+  with open(lilac_yaml_path, 'w') as f:
+    yaml.dump(lilac_yaml, stream=f)
+
+  subprocess.check_call(['git', 'add', pkg], cwd=const.REPODIR)
+
+def process_partly_removed(partly) -> None:
+  for pkg, maintainers in partly.items():
+    remove_maintainer(pkg, maintainers)
+
+async def main() -> None:
+  with open('/home/lilydjwg/tmpfs/update.yaml') as f:
+    updates = yamlutils.load(f)
+  # process_partly_removed(updates['partly_removed'])
+  await process_full_removed(updates['removed'])
+
+async def process_full_removed(removed):
+  gh = GitHub(const.GITHUB_TOEKN)
   for user, packages in removed.items():
     if len(packages) < 6:
       subject = f'orphaning {", ".join(packages)} for {user}'
@@ -30,7 +62,7 @@ async def main():
       body += 'This package was '
     else:
       body += 'These packages were '
-    body += 'cleaned up during the 2020 cleanup (#1739). If any maintainers want to adopt '
+    body += f'cleaned up during the {const.CLEANUP_NAME} cleanup (#{const.ISSUE_NR}). If any maintainers want to adopt '
     if len(packages) == 1:
       body += 'it'
     else:
@@ -40,7 +72,7 @@ async def main():
     issue = await gh.create_issue(
       'archlinuxcn/repo', subject,
       body = body,
-      labels=['orphaning'],
+      labels=['orphaning', 'cleanup'],
     )
     print(f'{issue} created.')
     await asyncio.sleep(3)

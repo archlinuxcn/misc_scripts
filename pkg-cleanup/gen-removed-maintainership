@@ -6,12 +6,13 @@ import json
 import asyncio
 from collections import defaultdict
 
+import const
 from agithub import GitHub
 
 async def main() -> None:
-  gh = GitHub('XXX')
+  gh = GitHub(const.GITHUB_TOEKN)
   comments = [c async for c in gh.get_issue_comments(
-    'archlinuxcn/repo', 1739)
+    'archlinuxcn/repo', const.ISSUE_NR)
   ]
   removed = defaultdict(list)
   waiting_user = []
@@ -20,28 +21,48 @@ async def main() -> None:
     lines = comment.body.splitlines()
     it = iter(lines)
     l = next(it)
-    if not (l.startswith('@') and l.endswith(':')):
+    if not l.startswith('@'):
+      continue
+    # strict checking for initiator
+    if comment.author == 'lilydjwg' and not l.endswith(':'):
       continue
 
-    who = l[1:-1]
+    who = l[1:].rstrip(':')
+    # wrong @
+    if who == 'lilydjwg' and comment.author != 'lilydjwg':
+      who = comment.author
     if comment.author not in [who, 'lilydjwg']:
       continue
 
     all_unchecked = True
     for l in it:
+      if not l.strip():
+        continue
+      # alternative list marker
+      if l.startswith('- '):
+        l = '* ' + l[2:]
       if not l.startswith('* ['):
         break
-      checked = l.startswith('* [x] ')
+      checked = l.lower().startswith('* [x] ')
       name = l.split(']', 1)[1].split(None, 1)[0]
+      # print(who, name, checked)
       if not checked:
         removed[who].append(name)
       else:
         all_unchecked = False
+        try:
+          removed[who].remove(name)
+        except ValueError:
+          pass
 
     if all_unchecked:
       waiting_user.append(who)
+    else:
+      try:
+        waiting_user.remove(who)
+      except ValueError:
+        pass
 
-  print(removed)
   with open('/home/lilydjwg/tmpfs/removed.json', 'w') as f:
     json.dump({'removed': removed, 'waiting_user': waiting_user}, f)
 
