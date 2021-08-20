@@ -27,7 +27,7 @@ async def main() -> None:
     if comment.author == 'lilydjwg' and not l.endswith(':'):
       continue
 
-    who = l[1:].rstrip(':')
+    who = l[1:].rstrip(': ')
     # wrong @
     if who == 'lilydjwg' and comment.author != 'lilydjwg':
       who = comment.author
