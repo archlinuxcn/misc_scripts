@@ -10,6 +10,8 @@ from aiohttp import web
 
 from agithub import GitHub
 
+import lilac2.packages
+
 from . import issue
 from . import config
 from . import git
@@ -55,9 +57,7 @@ class IssueHandler:
     if event_type == 'push':
       pushed_repo = data['repository']['full_name']
       if pushed_repo == config.REPO_NAME:
-        asyncio.ensure_future(
-          git.pull_repo(config.REPODIR, config.REPO_NAME)
-        )
+        asyncio.ensure_future(on_push())
       return
 
     if event_type != 'issues':
@@ -68,6 +68,17 @@ class IssueHandler:
 
     asyncio.ensure_future(issue.process_issue(
       self.gh, data['issue'], data['action'] == 'edited'))
+
+async def on_push() -> None:
+  await git.pull_repo(config.REPODIR, config.REPO_NAME)
+  loop = asyncio.get_event_loop()
+  await loop.run_in_executor(None, update_pkgname_map_sync)
+
+def update_pkgname_map_sync():
+  s = lilac2.packages.get_all_pkgnames(config.REPODIR)
+  m = {pkgname: pkgbase for pkgbase, pkgname in s}
+  with open(config.REPODIR / 'pkgname_map.json', 'w') as f:
+    json.dump(m, f)
 
 def setup_app(app, secret, token):
   handler = IssueHandler(secret, token)
