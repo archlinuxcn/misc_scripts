@@ -4,6 +4,7 @@ import re
 from enum import Enum
 import logging
 from typing import Dict, Any, List, Set, Tuple, Optional
+import json
 
 from agithub import Issue, GitHub
 
@@ -77,7 +78,17 @@ def parse_issue_text(text: str) -> Tuple[Optional[IssueType], List[str]]:
         firstword = firstword_m.group()
         packages.append(firstword)
 
+  packages = map_pkgnames(packages)
   return issuetype, packages
+
+def map_pkgnames(pkgs: list[str]) -> list[str]:
+  try:
+    with open(config.REPODIR / 'pkgname_map.json') as f:
+      map = json.load(f)
+  except OSError:
+    return pkgs
+
+  return [map.get(pkg, pkg) for pkg in pkgs]
 
 async def find_affecting_deps(
   packages: List[str],
