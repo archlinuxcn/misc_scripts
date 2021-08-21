@@ -6,7 +6,7 @@ import logging
 from typing import Dict, Any, List, Set, Tuple, Optional
 import json
 
-from agithub import Issue, GitHub
+from agithub import Issue, GitHub, Comment
 
 from . import config
 from . import files
@@ -139,6 +139,14 @@ async def process_orphaning(
 
   return comment
 
+async def edit_or_add_comment(issue: Issue, comment: Optional[Comment], body: str) -> None:
+  if comment is None:
+    await issue.comment(body)
+  elif comment.body == body:
+    pass
+  else:
+    await comment.edit(body)
+
 async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
                         edited: bool) -> None:
   issue = Issue(issue_dict, gh)
@@ -148,19 +156,22 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
   body = issue.body
   issuetype, packages = parse_issue_text(body)
 
-  if edited and issuetype != IssueType.Orphaning:
-    async for c in gh.get_issue_comments(
-      config.REPO_NAME, issue.number):
-      if c.author == config.MY_GITHUB and 'cannot parse' in c.body:
-        await c.delete()
-        break
+  existing_comment = None
+  idx = 0
+  async for c in gh.get_issue_comments(config.REPO_NAME, issue.number):
+    idx += 1
+    if c.author == config.MY_GITHUB:
+      existing_comment = c
+      break
+    elif idx > 20: # check no further
+      break
 
   if issuetype is None or (not packages and issuetype in [
     IssueType.OutOfDate, IssueType.Orphaning, IssueType.Official]):
-    if edited:
-      await issue.comment(_CANT_PARSE_EDITED)
-    else:
-      await issue.comment(_CANT_PARSE_NEW)
+    await edit_or_add_comment(
+      issue, existing_comment,
+      _CANT_PARSE_EDITED if edited else _CANT_PARSE_NEW,
+    )
     await issue.close()
     return
 
@@ -243,8 +254,10 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
         comment += '\n\n'
       comment += 'Some maintainers (perhaps outside contributors) cannot be assigned: ' + ', '.join(f'@{x}' for x in failed)
   if comment:
-    await issue.comment(comment)
+    await edit_or_add_comment(issue, existing_comment, comment)
 
   if issue.closed and issue.closed_by == config.MY_GITHUB \
      and 'request-failed' not in issue.labels:
     await issue.reopen()
+    if existing_comment and 'cannot parse' in existing_comment.body:
+      await existing_comment.delete()
