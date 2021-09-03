@@ -6,7 +6,7 @@ import logging
 from typing import Dict, Any, List, Set, Tuple, Optional
 import json
 
-from agithub import Issue, GitHub, Comment
+from agithub import Issue, GitHub, Comment, GitHubError
 
 from . import config
 from . import files
@@ -158,13 +158,16 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
 
   existing_comment = None
   idx = 0
-  async for c in gh.get_issue_comments(config.REPO_NAME, issue.number):
-    idx += 1
-    if c.author == config.MY_GITHUB:
-      existing_comment = c
-      break
-    elif idx > 20: # check no further
-      break
+  try:
+    async for c in gh.get_issue_comments(config.REPO_NAME, issue.number):
+      idx += 1
+      if c.author == config.MY_GITHUB:
+        existing_comment = c
+        break
+      elif idx > 20: # check no further
+        break
+  except GitHubError:
+    pass # not found
 
   if issuetype is None or (not packages and issuetype in [
     IssueType.OutOfDate, IssueType.Orphaning, IssueType.Official]):
