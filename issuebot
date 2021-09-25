@@ -29,11 +29,12 @@ from webhooks import lilac, config
 REQUEST_WAITING_TIME = datetime.timedelta(days=30)
 ORPHANING_WAITING_TIME = datetime.timedelta(days=14)
 OFFICIAL_WAITING_TIME = datetime.timedelta(days=4)
+LICENSE_WAITING_TIME = datetime.timedelta(days=14)
 
 LILAC_LOCK = os.path.expanduser('~/.lilac/.lock')
 REPO = pathlib.Path('~/archgitrepo/archlinuxcn').expanduser()
 
-ORPHANED_PACKAGES_BREAKDOWN = 5
+PACKAGE_LIST_BREAKDOWN = 5
 
 def git_push() -> None:
   while True:
@@ -72,6 +73,7 @@ def process_one_orphaned(
 ) -> OrphanResult:
   p = REPO / name
   dependents = lilac.find_dependent_packages_ext(REPO, name)
+  # FIXME: don't remove if d.pkgbase is to be orphaned but not removed
   dependents = [d for d in dependents if d.pkgbase not in all_orphans]
   if dependents:
     remove_maintainers(p)
@@ -120,7 +122,7 @@ lilac can't parse out the relevant package names, please handle manually.''')
                   if r == OrphanResult.NotFound]
 
       if removed or depended:
-        if not depended and len(removed) <= ORPHANED_PACKAGES_BREAKDOWN:
+        if not depended and len(removed) <= PACKAGE_LIST_BREAKDOWN:
           # simple case
           msg = f'{", ".join(removed)}: orphaned, removing. closes #{issue.number}'
         else:
@@ -256,7 +258,7 @@ lilac can't parse out the relevant package names, please handle manually.''')
 
       if changed:
         msg = None
-        if len(packages) > ORPHANED_PACKAGES_BREAKDOWN:
+        if len(packages) > PACKAGE_LIST_BREAKDOWN:
           affected = "\n".join(f"- {x}" for x in packages)
           msg = f'''Removing {len(packages)} packages \
 and corresponding repo_depends entries because they are already in official repos.
@@ -267,6 +269,77 @@ Affected packages:
 closes #{issue.number}'''
         else:
           msg = f'{", ".join(packages)}: in official repos, removing packages and repo_depends entries if any. closes #{issue.number}'
+        subprocess.check_call(['git', 'commit', '-m', msg], cwd=REPO)
+        git_push()
+
+    if changed:
+      issue.comment('''\
+已自动删除。
+
+Automatically removed.''')
+    else:
+      issue.comment('''\
+已被删除。
+
+Already removed.''')
+      issue.close()
+
+def process_license_issue(
+  gh: GitHub, repo: str, now: datetime.datetime,
+) -> None:
+  issues = [
+    issue for issue in filter_issue(gh.get_repo_issues(
+      repo, labels='license'))
+    if now - issue.updated_at > LICENSE_WAITING_TIME
+    and 'seen-by-lilac' not in issue.labels
+  ]
+
+  for issue in issues:
+    print(f'Removing license issue: {issue}')
+    _issuetype, packages = parse_issue_text(issue.body)
+    if not packages:
+      issue.comment('''\
+lilac 无法解析出涉及的软件包名，请手动处理。
+
+lilac can't parse out the relevant package names, please handle manually.''')
+      issue.add_labels(['seen-by-lilac'])
+      continue
+
+    changed = False
+
+    with file_lock(LILAC_LOCK):
+      subprocess.check_call(['git', 'pull'], cwd=REPO)
+
+      for pkgdir in iter_pkgdir(REPO):
+        try:
+          if remove_repo_depends(pkgdir, packages):
+            changed = True
+        except Exception:
+          print(f'Error processing {pkgdir}:', file=sys.stderr)
+          raise
+
+      for name in packages:
+        try:
+          shutil.rmtree(REPO / name)
+        except FileNotFoundError:
+          pass
+        else:
+          subprocess.check_call(['git', 'add', name], cwd=REPO)
+          changed = True
+
+      if changed:
+        msg = None
+        if len(packages) > PACKAGE_LIST_BREAKDOWN:
+          affected = "\n".join(f"- {x}" for x in packages)
+          msg = f'''Removing {len(packages)} packages \
+and corresponding repo_depends entries because license issues.
+
+Affected packages:
+{affected}
+
+closes #{issue.number}'''
+        else:
+          msg = f'{", ".join(packages)}: license issues, removing packages and repo_depends entries if any. closes #{issue.number}'
         subprocess.check_call(['git', 'commit', '-m', msg], cwd=REPO)
         git_push()
 
@@ -373,6 +446,7 @@ def main() -> None:
   process_package_requests(gh, repo, now)
   process_orphaned_packages(gh, repo, now)
   process_in_official(gh, repo, now)
+  process_license_issue(gh, repo, now)
   try_remove_orphaned(gh, repo)
 
 if __name__ == '__main__':
