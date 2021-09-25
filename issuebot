@@ -297,7 +297,11 @@ def process_license_issue(
   for issue in issues:
     print(f'Removing license issue: {issue}')
     _issuetype, packages = parse_issue_text(issue.body)
-    if not packages:
+    if not packages and issue.is_pull:
+      issue.comment('''Unresolved license issues, closing.''')
+      issue.close()
+      continue
+    elif not packages:
       issue.comment('''\
 lilac 无法解析出涉及的软件包名，请手动处理。
 
