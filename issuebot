@@ -61,9 +61,9 @@ def process_package_requests(
     if now - issue.updated_at > REQUEST_WAITING_TIME:
       print(f'Marking {issue} as failed')
       issue.comment('''\
-请求太久无回应，关闭。
+请求太久无维护者接手，关闭。
 
-This request has been waiting for too long, closing.''')
+This request has been waiting for its maintainer for too long, closing.''')
       issue.add_labels(['request-failed'])
       issue.close()
 
