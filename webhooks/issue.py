@@ -28,7 +28,7 @@ _TypeDescMap = {
   '其它': IssueType.Other,
 }
 
-_PkgPattern = re.compile(r'[\w.+-]+')
+_PkgPattern = re.compile(r'\w[\w.+-]*\w?')
 
 _CANT_PARSE_NEW = '''\
 Lilac cannot parse this issue. Did you follow the template? Please update and I'll reopen this.
@@ -73,7 +73,7 @@ def parse_issue_text(text: str) -> Tuple[Optional[IssueType], List[str]]:
     elif st == _ParseState.packages:
       firstword_m = _PkgPattern.search(line)
       if firstword_m:
-        if line.startswith('* [x] '):
+        if line.lower().startswith(('* [x] ', '- [x] ')):
           continue
         firstword = firstword_m.group()
         packages.append(firstword)
