@@ -71,7 +71,7 @@ class IssueHandler:
 
 async def on_push() -> None:
   await git.pull_repo(config.REPODIR, config.REPO_NAME)
-  loop = asyncio.get_event_loop()
+  loop = asyncio.get_running_loop()
   await loop.run_in_executor(None, update_pkgname_map_sync)
 
 def update_pkgname_map_sync():

@@ -14,7 +14,7 @@ from .util import Dependent, Maintainer
 async def find_maintainers(
   pkgbase: str,
 ) -> List[Maintainer]:
-  loop = asyncio.get_event_loop()
+  loop = asyncio.get_running_loop()
   return await loop.run_in_executor(
     None, find_maintainers_sync, pkgbase)
 
@@ -31,7 +31,7 @@ def find_maintainers_sync(
 async def find_dependent_packages(
   pkgbase: str,
 ) -> List[str]:
-  loop = asyncio.get_event_loop()
+  loop = asyncio.get_running_loop()
   dependents = await loop.run_in_executor(
     None, find_dependent_packages_ext, REPODIR, pkgbase)
   return [x.pkgbase for x in dependents]
@@ -39,7 +39,7 @@ async def find_dependent_packages(
 async def find_dependent_packages_ext_async(
   pkgbase: str,
 ) -> List[Dependent]:
-  loop = asyncio.get_event_loop()
+  loop = asyncio.get_running_loop()
   dependents = await loop.run_in_executor(
     None, find_dependent_packages_ext, REPODIR, pkgbase)
   return dependents

@@ -60,7 +60,7 @@ def main() -> None:
 
   token = os.environ['GITHUB_TOKEN']
   gh = GitHub(token)
-  loop = asyncio.get_event_loop()
+  loop = asyncio.new_event_loop()
 
   dbpath.mkdir(exist_ok=True)
   pkgbuild.init_data(dbpath, quiet=True)
