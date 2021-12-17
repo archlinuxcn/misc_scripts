@@ -54,10 +54,12 @@ class IssueHandler:
 
     data = json.loads(body)
 
+    repo = data['repository']['full_name']
+    if repo != config.REPO_NAME:
+      return
+
     if event_type == 'push':
-      pushed_repo = data['repository']['full_name']
-      if pushed_repo == config.REPO_NAME:
-        asyncio.ensure_future(on_push())
+      asyncio.ensure_future(on_push())
       return
 
     if event_type != 'issues':

@@ -259,8 +259,10 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
   if comment:
     await edit_or_add_comment(issue, existing_comment, comment)
 
-  if issue.closed and issue.closed_by == config.MY_GITHUB \
-     and 'request-failed' not in issue.labels:
-    await issue.reopen()
-    if existing_comment and 'cannot parse' in existing_comment.body:
-      await existing_comment.delete()
+  if issue.closed:
+    # webhook issues don't have "closed_by" info
+    issue2 = await gh.get_issue(config.REPO_NAME, issue.number)
+    if issue2.closed_by == config.MY_GITHUB and 'request-failed' not in issue.labels:
+      await issue.reopen()
+      if existing_comment and 'cannot parse' in existing_comment.body:
+        await existing_comment.delete()
