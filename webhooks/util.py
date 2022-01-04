@@ -30,7 +30,7 @@ class OrphanResult:
       return getattr(cls, ty)
 
     inst = super().__new__(cls)
-    inst.__init__(ty, dependents)
+    inst.__init__(ty, dependents) # type: ignore
     return inst
 
   def __init__(
