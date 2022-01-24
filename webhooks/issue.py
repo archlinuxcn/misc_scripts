@@ -9,7 +9,6 @@ import json
 from agithub import Issue, GitHub, Comment, GitHubError
 
 from . import config
-from . import files
 from . import lilac
 from .util import annotate_maints, Maintainer
 
@@ -231,20 +230,7 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
         comment += '\n'.join(comment_parts) + '\n\n'
 
       if issuetype == IssueType.OutOfDate and packages:
-        try:
-          logs = await files.find_build_log(
-            config.REPODIR, config.BUILDLOG, packages,
-          )
-        except LookupError:
-          pass
-        else:
-          logs2 = [line for name, line in logs.items() if name in packages]
-          logs3 = '\n'.join(sorted(logs2))
-          comment += f'''build log for auto building out-of-date packages:
-```
-{logs3}
-```
-'''
+        comment += config.gen_log_comment(packages)
 
   if labels:
     await issue.add_labels(labels)
