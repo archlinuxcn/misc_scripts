@@ -15,7 +15,7 @@ def gen_log_comment(pkgs: list[str]) -> str:
 | pkgbase | build history | last build log |
 | --- | --- | --- |\n''']
   t = int(time.time())
-  for pkg in pkgs:
+  for pkg in set(pkgs):
     ss.append(f'''\
 | {pkg} \
 | [build history](https://build.archlinuxcn.org/~imlonghao/#{pkg}) \
