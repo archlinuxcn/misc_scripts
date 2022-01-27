@@ -11,7 +11,9 @@ MYMAIL = 'lilac@build.archlinuxcn.org'
 REPODIR = Path('/data/archgitrepo-webhook/archlinuxcn').expanduser()
 
 def gen_log_comment(pkgs: list[str]) -> str:
-  ss = []
+  ss = ['''\
+| pkgbase | build history | last build log |
+| --- | --- | --- |\n''']
   t = int(time.time())
   for pkg in pkgs:
     ss.append(f'''\
