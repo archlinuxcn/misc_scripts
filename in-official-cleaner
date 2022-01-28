@@ -8,15 +8,16 @@ import pathlib
 import logging
 import subprocess
 
+import pyalpm
+
 from myutils import lock_file
 from agithub import GitHub
 
-from lilac2.const import mydir as lilacdir
+from lilac2.const import mydir as lilacdir, OFFICIAL_REPOS, PACMAN_DB_DIR
 from lilac2 import pkgbuild, packages
 
 from webhooks.issue import parse_issue_text
 
-dbpath = lilacdir / 'pacmandb'
 repodir = pathlib.Path('~/archgitrepo/archlinuxcn').expanduser()
 github_repo = 'archlinuxcn/repo'
 
@@ -55,6 +56,14 @@ async def get_open_issue_packages(gh: GitHub) -> Set[str]:
 
   return ret
 
+def get_official_packages() -> set[str]:
+  ret: set[str] = set()
+  H = pyalpm.Handle('/', str(PACMAN_DB_DIR))
+  for repo in OFFICIAL_REPOS:
+    db = H.register_syncdb(repo, 0)
+    ret.update(p.name for p in db.pkgcache)
+  return ret
+
 def main() -> None:
   lock_file(lilacdir / '.lock')
 
@@ -62,9 +71,8 @@ def main() -> None:
   gh = GitHub(token)
   loop = asyncio.new_event_loop()
 
-  dbpath.mkdir(exist_ok=True)
-  pkgbuild.init_data(dbpath, quiet=True)
-  official = pkgbuild.get_official_packages()
+  pkgbuild.update_pacmandb(PACMAN_DB_DIR, quiet=True)
+  official = get_official_packages()
 
   subprocess.check_call(
     ['git', 'pull', '--no-edit', '-q'],
