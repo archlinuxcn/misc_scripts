@@ -1,0 +1,3 @@
+#!/bin/sh -e
+
+ps -A -o user:15,cmd | grep '\<tee /logdest/.*-\w\+.log$' | sed 's=^\(\w\+\s*\).*tee /logdest/\(.*\)-\w\+\.log$=\1 is building \2='
