@@ -11,7 +11,11 @@ from typing import Set, List, Dict, Tuple
 import archpkg
 
 repo_path: Path = Path('/data/repo')
-gitrepo_path: Path = Path('~/archgitrepo/archlinuxcn').expanduser()
+gitrepo_path: Path = Path('~/archgitrepo').expanduser()
+packages_paths: List[Path] = [
+  Path('~/archgitrepo/archlinuxcn').expanduser(),
+  Path('~/archgitrepo/alarmcn').expanduser(),
+]
 max_keep: int = 2
 DRY_RUN: bool = False
 
@@ -37,9 +41,15 @@ def search_pkgbuild_for_pkgname(
   return ret
 
 def get_all_pkgnames() -> Set[str]:
+  ret = set()
+  for p in packages_paths:
+    ret |= get_all_pkgnames_for_path(p)
+  return ret
+
+def get_all_pkgnames_for_path(p: Path) -> Set[str]:
   # also see lilac2.packages.get_all_pkgnames
   packages: Set[str] = set()
-  for ly in gitrepo_path.glob('*/lilac.yaml'):
+  for ly in p.glob('*/lilac.yaml'):
 
     pkgfile = ly.with_name('package.list')
     if pkgfile.exists():
