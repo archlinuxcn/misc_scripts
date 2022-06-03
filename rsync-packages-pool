@@ -1,3 +1,9 @@
-#!/bin/bash -e
+#!/bin/bash
 
 rsync -rtlivH --delete-after --delay-updates --safe-links --contimeout=60 --include='/pool/' --include='/pool/**' --exclude='*' mirror.pkgbuild.com::packages/ /data/archlinux
+
+if [[ $? == 0 || $? == 24 ]]; then
+  exit 0
+else
+  exit $?
+fi
