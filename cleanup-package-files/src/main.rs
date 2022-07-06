@@ -1,9 +1,3 @@
-#[macro_use] extern crate failure;
-extern crate nix;
-extern crate expanduser;
-extern crate structopt;
-extern crate pwd;
-
 use std::process::Command;
 use std::path::Path;
 use std::ffi::{OsStr, OsString};
@@ -12,24 +6,24 @@ use std::fs::File;
 use std::os::unix::io::IntoRawFd;
 
 use expanduser::expanduser;
-use failure::Error;
+use eyre::{Result, ensure, eyre};
 use structopt::StructOpt;
 
 const LILAC_LOCK: &str = "~lilydjwg/.lilac/.lock";
 const LILAC_REPO: &str = "~lilydjwg/archgitrepo/archlinuxcn";
 const USER: &str = "lilydjwg";
 
-fn flock<P: AsRef<Path>>(lockfile: P) -> Result<(), Error> {
+fn flock<P: AsRef<Path>>(lockfile: P) -> Result<()> {
   let f = File::open(lockfile.as_ref())?;
   let fd = f.into_raw_fd();
-  if let Err(_) = nix::fcntl::flock(fd, nix::fcntl::FlockArg::LockExclusiveNonblock) {
+  if nix::fcntl::flock(fd, nix::fcntl::FlockArg::LockExclusiveNonblock).is_err() {
     eprintln!("Waiting for lock file {} to release...", lockfile.as_ref().display());
     nix::fcntl::flock(fd, nix::fcntl::FlockArg::LockExclusive)?;
   }
   Ok(())
 }
 
-fn git_ls_files() -> Result<Vec<OsString>, Error> {
+fn git_ls_files() -> Result<Vec<OsString>> {
   let output = Command::new("git").arg("ls-files").output()?;
   ensure!(output.status.success(),
     "{:?}: {}", output.status, String::from_utf8_lossy(&output.stderr));
@@ -49,10 +43,12 @@ struct Opt {
   pkgname: String,
 }
 
-fn main() -> Result<(),Error> {
+fn main() -> Result<()> {
   let opt = Opt::from_args();
 
-  let pwd = pwd::Passwd::from_name(USER)?.unwrap();
+  let pwd = pwd::Passwd::from_name(USER)
+    .map_err(|e| eyre!("cannot get passwd entry for user {}: {:?}", USER, e))?
+    .unwrap();
   nix::unistd::setuid(nix::unistd::Uid::from_raw(pwd.uid))?;
 
   if opt.real {
