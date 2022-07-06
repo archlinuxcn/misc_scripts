@@ -15,5 +15,9 @@ version = "*"
 default-features = false
 features = []
 
+[patch.crates-io]
+# a version with thiserror instead of the deprecated failure crate
+pwd = { git = "https://gitlab.com/Goorzhel/pwd.git", branch = "update" }
+
 [profile.release]
 lto = true
