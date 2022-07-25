@@ -8,16 +8,13 @@ edition = "2021"
 nix = "*"
 eyre = "*"
 expanduser = "*"
-pwd = "*"
+# since 1.4.0 it uses thiserror instead of failure
+pwd = "1.4"
 
 [dependencies.structopt]
 version = "*"
 default-features = false
 features = []
-
-[patch.crates-io]
-# a version with thiserror instead of the deprecated failure crate
-pwd = { git = "https://gitlab.com/Goorzhel/pwd.git", branch = "update" }
 
 [profile.release]
 lto = true
