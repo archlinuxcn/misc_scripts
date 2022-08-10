@@ -2,7 +2,10 @@
 
 rsync -rtlivH --delete-after --delay-updates --safe-links --contimeout=60 --include='/pool/' --include='/pool/**' --exclude='*' mirror.pkgbuild.com::packages/ /data/archlinux
 
-if [[ $? == 0 || $? == 24 ]]; then
+# 24 - Partial transfer due to vanished source files
+# 23 - Partial transfer due to error: sender failed to open temporary files
+#    from upstream transfer
+if [[ $? == 0 || $? == 24 || $? == 23 ]]; then
   exit 0
 else
   exit $?
