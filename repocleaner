@@ -32,7 +32,7 @@ def search_pkgbuild_for_pkgname(
         m = re_package.match(l)
         if m:
           if m.group(1):
-            ret.add(m.group(1))
+            ret.add(m.group(1).strip())
           else:
             ret.add(pkgbuild.parent.name)
   except FileNotFoundError:
