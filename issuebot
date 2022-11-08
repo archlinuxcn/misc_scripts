@@ -95,8 +95,8 @@ def process_orphaned_packages(
             and 'seen-by-lilac' not in issue.labels]
 
   for issue in issues:
-    print(f'Removing orphaned {issue}')
     _issuetype, packages = parse_issue_text(issue.body)
+    print(f'Removing orphaned {issue}, packages: {packages}')
     if not packages:
       issue.comment('''\
 lilac 无法解析出涉及的软件包名，请手动处理。

@@ -39,7 +39,7 @@ Lilac still cannot parse this issue, please check against the template. Please u
 
 Lilac 依旧无法解析此问题报告，请对照模板检查。请更新，然后我会重新打开这个问题。'''
 
-def parse_issue_text(text: str) -> Tuple[Optional[IssueType], List[str]]:
+def parse_issue_text(text: str) -> Tuple[Optional[IssueType], Set[str]]:
   st = _ParseState.init
   skipping = False
 
@@ -78,7 +78,7 @@ def parse_issue_text(text: str) -> Tuple[Optional[IssueType], List[str]]:
         packages.append(firstword)
 
   packages = map_pkgnames(packages)
-  return issuetype, packages
+  return issuetype, set(packages)
 
 def map_pkgnames(pkgs: list[str]) -> list[str]:
   try:
@@ -90,11 +90,11 @@ def map_pkgnames(pkgs: list[str]) -> list[str]:
   return [map.get(pkg, pkg) for pkg in pkgs]
 
 async def find_affecting_deps(
-  packages: List[str],
+  packages: Set[str],
 ) -> Dict[str, List[str]]:
   ret = {}
   for pkg in packages:
-    deps = [x for x in 
+    deps = [x for x in
             await lilac.find_dependent_packages(pkg)
             if x not in packages]
     if deps:
@@ -103,7 +103,7 @@ async def find_affecting_deps(
 
 async def process_orphaning(
   author: str, edited: bool,
-  packages: List[str], assignees: Set[str],
+  packages: Set[str], assignees: Set[str],
   maintainers: List[Maintainer],
 ) -> str:
   if author != config.MY_GITHUB:

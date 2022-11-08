@@ -10,12 +10,12 @@ REPO_URL = f'git@github.com:{REPO_NAME}.git'
 MYMAIL = 'lilac@build.archlinuxcn.org'
 REPODIR = Path('/data/archgitrepo-webhook/archlinuxcn').expanduser()
 
-def gen_log_comment(pkgs: list[str]) -> str:
+def gen_log_comment(pkgs: set[str]) -> str:
   ss = ['''\
 | pkgbase | build history | last build log |
 | --- | --- | --- |''']
   t = int(time.time())
-  for pkg in set(pkgs):
+  for pkg in pkgs:
     ss.append(f'''\
 | {pkg} \
 | [build history](https://build.archlinuxcn.org/~imlonghao/#{pkg}) \
