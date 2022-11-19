@@ -1,15 +1,21 @@
 #!/bin/zsh -e
 
+cd /
+
 tdir=$(mktemp -d)
 sudo -u http pg_dump -n archcnwiki -O -x http > $tdir/db.sql
+sudo -u http pg_dump -n archcnmaintwiki -O -x http > $tdir/db_maint.sql
 
 cd $tdir
 ln -s /var/lib/mediawiki images
-cp /etc/webapps/mediawiki/LocalSettings.php .
+ln -s /var/lib/mediawiki_maint images_maint
+ln -s /etc/webapps/mediawiki conf
+ln -s /etc/nginx/nginx.conf nginx.conf
 
+setopt extendedglob nullglob
 {
-  print -l db.sql LocalSettings.php
-  print -l images/logo.png images/*/*/*(.)
+  print -l *.sql conf/*~*~ nginx.conf
+  print -l images/*.png images/*/*/*(.) images_maint/logo.png images_maint/*/*/*(.)
 } | tar c -T- | zstd -c --ultra -20 - > ~/wiki-backups/wikidb-"$(date +"%Y-%m-%d.%H:%M:%S")".tar.zst
 
 cd /
