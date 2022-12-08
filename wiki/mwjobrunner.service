@@ -1,0 +1,25 @@
+[Unit]
+Description=MediaWiki Job runner
+After=php-fpm.service postgresql.service
+
+[Service]
+ExecStart=/usr/local/bin/mwjobrunner
+Type=exec
+Nice=10
+User=http
+OOMScoreAdjust=200
+Restart=on-failure
+
+# from php-fpm.service
+PrivateTmp=true
+ProtectSystem=full
+PrivateDevices=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_NETLINK AF_UNIX
+RestrictNamespaces=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,15 @@
+#!/bin/bash
+
+MW_INSTALL_PATH=/usr/share/webapps/mediawiki
+RUNJOBS=$MW_INSTALL_PATH/maintenance/runJobs.php
+while true; do
+  # Job types that need to be run ASAP no matter how many of them are in the queue
+  # Those jobs should be very "cheap" to run
+  php $RUNJOBS -q --type="enotifNotify"
+  # Everything else, limit the number of jobs on each batch
+  # The --wait parameter will pause the execution here until new jobs are added,
+  # to avoid running the loop without anything to do
+  php $RUNJOBS -q --wait --maxjobs=20
+  # Wait some seconds to let the CPU do other things, like handling web requests, etc
+  sleep 10
+done
