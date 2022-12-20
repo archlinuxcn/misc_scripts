@@ -1,0 +1,9 @@
+[Trigger]
+Operation = Upgrade
+Type = Package
+Target = mediawiki
+
+[Action]
+Description = Patch MediaWiki...
+Exec = /usr/local/sbin/patch-mw
+When = PostTransaction
