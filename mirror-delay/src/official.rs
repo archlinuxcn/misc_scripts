@@ -1,10 +1,17 @@
-#![allow(clippy::uninlined_format_args)]
 use std::net::TcpStream;
 use std::time::Duration;
 use std::io::Write;
 
 use serde::Deserialize;
 use chrono::{DateTime, Utc};
+
+use super::util::name_from_url;
+
+#[derive(Deserialize)]
+struct Result {
+  last_check: DateTime<Utc>,
+  urls: Vec<Mirror>,
+}
 
 #[derive(Deserialize)]
 struct Mirror {
@@ -15,19 +22,7 @@ struct Mirror {
   country_code: String,
 }
 
-#[derive(Deserialize)]
-struct Result {
-  last_check: DateTime<Utc>,
-  urls: Vec<Mirror>,
-}
-
-pub fn do_work() {
-  if let Err(e) = do_work_real() {
-    eprintln!("Error while fetching mirror stats: {:?}", e);
-  }
-}
-
-fn do_work_real() -> reqwest::Result<()> {
+pub fn do_work() -> reqwest::Result<()> {
   let r: Result = reqwest::blocking::get("https://archlinux.org/mirrors/status/json/")?.json()?;
   let t = r.last_check.timestamp();
   let mirrors: Vec<_> = r.urls.into_iter().filter(|m|
@@ -60,14 +55,3 @@ fn send_stats_real(t: i64, mirrors: Vec<Mirror>) -> std::io::Result<()> {
   Ok(())
 }
 
-fn name_from_url(url: &url::Url) -> &str {
-  if let Some(url::Host::Domain(host)) = url.host() {
-    if let Some(d) = psl::domain(host.as_bytes()) {
-      let whole = d.as_bytes();
-      let suffix = d.suffix().as_bytes();
-      let main = &whole[..suffix.as_ptr() as usize - whole.as_ptr() as usize];
-      return std::str::from_utf8(main).unwrap().trim_end_matches('.');
-    }
-  }
-  "host_invalid"
-}
