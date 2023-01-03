@@ -9,6 +9,7 @@ use super::util::name_from_url;
 #[derive(Deserialize)]
 struct Mirror {
   url: url::Url,
+  lastupdate: u64,
   diff: u32,
 }
 
@@ -29,6 +30,9 @@ fn send_stats_real(mirrors: Vec<Mirror>) -> std::io::Result<()> {
   let mut sock = TcpStream::connect(("localhost", 2003))?;
   sock.set_write_timeout(Some(Duration::from_secs(1)))?;
   for m in mirrors {
+    if m.lastupdate == 0 { // failed
+      continue;
+    }
     let stat = format!(
       "stats.cnrepo_mirrors.{}.delay {} {}\n",
       name_from_url(&m.url),
