@@ -11,6 +11,8 @@ fn main() {
   for dur in timer::Timer::new(rate) {
     if let Err(d) = dur {
       eprintln!("behind {:.3}s.", d.as_secs_f32());
+      // don't try to compensate missed work
+      continue;
     }
     do_work();
   }
