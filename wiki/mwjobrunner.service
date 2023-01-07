@@ -13,16 +13,13 @@ Restart=on-failure
 # from php-fpm.service
 PrivateTmp=true
 ProtectSystem=full
+PrivateDevices=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
 ProtectControlGroups=true
-
-ReadWritePaths=/var/spool/postfix
-# not usable because of sendmail calling postdrop (a sgid program)
-# PrivateDevices=true
-# ProtectKernelModules=true
-# ProtectKernelTunables=true
-# RestrictAddressFamilies=AF_INET AF_INET6 AF_NETLINK AF_UNIX
-# RestrictRealtime=true
-# RestrictNamespaces=true
+RestrictRealtime=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_NETLINK AF_UNIX
+RestrictNamespaces=true
 
 [Install]
 WantedBy=multi-user.target
