@@ -3,8 +3,8 @@
 cd /
 
 tdir=$(mktemp -d)
-sudo -u http pg_dump -n archcnwiki -O -x http '--exclude-table=*.l10n_cache' > $tdir/db.sql
-sudo -u http pg_dump -n archcnmaintwiki -O -x http '--exclude-table=*.l10n_cache' > $tdir/db_maint.sql
+sudo -u http pg_dump -n archcnwiki -O -x http '--exclude-table-data=*.l10n_cache' > $tdir/db.sql
+sudo -u http pg_dump -n archcnmaintwiki -O -x http '--exclude-table-data=*.l10n_cache' > $tdir/db_maint.sql
 
 cd $tdir
 ln -s /var/lib/mediawiki images
