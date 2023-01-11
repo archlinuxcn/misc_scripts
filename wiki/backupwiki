@@ -10,7 +10,7 @@ cd $tdir
 ln -s /var/lib/mediawiki images
 ln -s /var/lib/mediawiki_maint images_maint
 ln -s /etc/webapps/mediawiki conf
-ln -s /etc/nginx/nginx.conf nginx.conf
+cp /etc/nginx/nginx.conf nginx.conf
 
 setopt extendedglob nullglob
 {
