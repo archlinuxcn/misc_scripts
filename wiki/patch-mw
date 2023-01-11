@@ -2,16 +2,16 @@
 
 cd /usr/share/webapps/mediawiki
 
-patch -p1 <<'EOF'
---- includes/parser/Sanitizer.php       2022-12-04 01:31:59.000000000 +0800
-+++ includes/parser/Sanitizer.php       2022-12-20 21:44:18.979107014 +0800
+patch -p0 <<'EOF'
+--- Sanitizer.php	2023-01-10 14:50:23.056232819 +0800
++++ Sanitizer.php	2023-01-10 14:50:43.652403140 +0800
 @@ -191,7 +191,7 @@
-                        $htmlnest = [ # Tags that can be nested--??
-                                'table', 'tr', 'td', 'th', 'div', 'blockquote', 'ol', 'ul',
-                                'li', 'dl', 'dt', 'dd', 'font', 'big', 'small', 'sub', 'sup', 'span',
--                               'var', 'kbd', 'samp', 'em', 'strong', 'q', 'ruby', 'bdo'
-+                               'var', 'kbd', 'samp', 'em', 'strong', 'q', 'ruby', 'bdo', 'aside'
-                        ];
-                        $tabletags = [ # Can only appear inside table, we will close them
-                                'td', 'th', 'tr',
+ 			$htmlnest = [ # Tags that can be nested--??
+ 				'table', 'tr', 'td', 'th', 'div', 'blockquote', 'ol', 'ul',
+ 				'li', 'dl', 'dt', 'dd', 'font', 'big', 'small', 'sub', 'sup', 'span',
+-				'var', 'kbd', 'samp', 'em', 'strong', 'q', 'ruby', 'bdo'
++				'var', 'kbd', 'samp', 'em', 'strong', 'q', 'ruby', 'bdo', 'aside'
+ 			];
+ 			$tabletags = [ # Can only appear inside table, we will close them
+ 				'td', 'th', 'tr',
 EOF
