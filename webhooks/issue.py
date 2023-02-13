@@ -149,11 +149,13 @@ async def edit_or_add_comment(issue: Issue, comment: Optional[Comment], body: st
 async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
                         edited: bool) -> None:
   issue = Issue(issue_dict, gh)
+  logger.info('Received issue %s', issue)
   if issue.number < 700 or 'no-lilac' in issue.labels:
     return
 
   body = issue.body
   issuetype, packages = parse_issue_text(body)
+  logger.info('issue type: %s, packages: %s', issuetype, packages)
 
   existing_comment = None
   idx = 0
@@ -187,7 +189,6 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
     labels = ['out-of-date']
   elif issuetype == IssueType.Orphaning:
     labels = ['orphaning']
-    find_assignees = True
     assignees.add(config.MY_GITHUB)
   elif issuetype == IssueType.Official:
     labels = ['in-official-repos']
@@ -202,8 +203,10 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
         try:
           maintainers = await lilac.find_maintainers(pkg)
         except FileNotFoundError:
+          logger.warning('package %s has no lilac.yaml', pkg)
           continue
 
+        logger.info('package %s maintainers: %s', pkg, maintainers)
         if not maintainers:
           unmaintained.append(pkg)
 
