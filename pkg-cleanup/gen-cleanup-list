@@ -14,6 +14,8 @@ from myutils import restart_if_failed
 from lilac2 import lilacyaml
 from lilac2.packages import get_split_packages
 
+import const
+
 logger = logging.getLogger(__name__)
 
 class PkgInfo(NamedTuple):
@@ -63,6 +65,7 @@ def gather_data() -> None:
     name = pkgdir.name
     # Accumulate counts for split packages
     packages = get_split_packages(pkgdir)
+    logger.info('processing %s with packages %s...', name, packages)
     total_pkgstats_cn_count = 0
     total_pkgstats_count = 0
     pkgstats_samples = 0
@@ -92,7 +95,7 @@ def gen_comments() -> List[str]:
   ret = []
   for who, pkgs in sorted(who_maint_what.items()):
     msg = [f'@{who}:']
-    pkgs.sort(key=lambda x: x.dl_count + x.stats_count)
+    pkgs.sort(key=lambda x: (x.dl_count + x.stats_count, x.pkgbase))
     for x in pkgs:
         msg.append(f'* [ ] {x.pkgbase} ({x.dl_count}) ({x.stats_count}; {x.stats_popularity:0.2f})')
     ret.append('\n'.join(msg))
@@ -124,6 +127,5 @@ if __name__ == '__main__':
   from nicelogger import enable_pretty_logging
   enable_pretty_logging('DEBUG')
   # gather_data()
-  # print_data()
-  import const
-  post_comments(const.GITHUB_TOEKN, const.ISSUE_NR)
+  print_data()
+  # post_comments(const.GITHUB_TOEKN, const.ISSUE_NR)
