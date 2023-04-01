@@ -21,7 +21,7 @@ def remove_maintainer(pkg: str, maintainers: list[str]) -> None:
 
   old_maintainers = lilac_yaml['maintainers']
   removing_indices = [i for i, m in enumerate(old_maintainers)
-                      if m['github'] not in maintainers]
+                      if m['github'] in maintainers]
   for idx in reversed(removing_indices):
     del old_maintainers[idx]
 
@@ -69,8 +69,8 @@ async def process_full_removed(removed):
       labels=['orphaning', 'cleanup'],
     )
     print(f'{issue} created.')
+    print(subject, body, sep='\n++++\n', end='\n====\n')
     await asyncio.sleep(3)
-    # print(subject, body, sep='\n++++\n', end='\n====\n')
 
 async def main() -> None:
   with open('/home/lilydjwg/tmpfs/update.yaml') as f:
