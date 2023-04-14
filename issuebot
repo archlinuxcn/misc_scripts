@@ -80,6 +80,12 @@ def process_one_orphaned(
     return OrphanResult.Depended(dependents)
 
   try:
+    # make directories writable so we can delete their contents
+    # Go may create such files like pkg/mod/github.com/go-sql-driver/mysql@v1.5.0
+    subprocess.run(
+      ['find', '.', '-type', 'd', '!', '-perm', '/u=w', '-exec', 'chmod', 'u+w', '{}', '+'],
+      cwd = p,
+    )
     shutil.rmtree(p)
   except FileNotFoundError:
     return OrphanResult.NotFound
