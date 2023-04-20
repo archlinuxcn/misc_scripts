@@ -1,0 +1,9 @@
+[Unit]
+Description=Trigger OOM Killer fast
+
+[Service]
+Type=exec
+ExecStart=/usr/local/sbin/fast-oom
+
+[Install]
+WantedBy=default.target
