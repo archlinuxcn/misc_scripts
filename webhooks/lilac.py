@@ -50,7 +50,11 @@ def find_dependent_packages_ext(
 ) -> List[Dependent]:
   ret = []
   for x in iter_pkgdir(repo):
-    ly = load_lilac_yaml(x)
+    try:
+      ly = load_lilac_yaml(x)
+    except Exception:
+      # ignore wrong packages
+      continue
     for d, _ in ly.get('repo_depends', ()):
       if d == target:
         maints = [x['github'] for x in
