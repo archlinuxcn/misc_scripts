@@ -19,7 +19,7 @@ from github import GitHub, Issue
 from myutils import file_lock
 
 from lilac2.lilacyaml import (
-  iter_pkgdir, load_lilac_yaml,
+  iter_pkgdir, load_lilac_yaml as _load_lilac_yaml,
 )
 
 from webhooks.issue import parse_issue_text
@@ -380,12 +380,19 @@ def _find_orphaning_issue(repo: pathlib.Path, pkg: str) -> Optional[int]:
   else:
     return None
 
+def load_lilac_yaml(x):
+  try:
+    return _load_lilac_yaml(x)
+  except Exception:
+    return None
+
 def find_orphaned_unmaintained_packages(
   repopath: pathlib.Path,
 ) -> Set[str]:
   lilac_yamls = {
-    x.name: load_lilac_yaml(x)
+    x.name: ly
     for x in iter_pkgdir(repopath)
+    if (ly := load_lilac_yaml(x)) is not None
   }
   orphaned_pkgs = {
     pkg
