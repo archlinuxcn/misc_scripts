@@ -144,6 +144,9 @@ def main(db: Path, lib_re: re.Pattern, dep_pkgname: Optional[str]) -> None:
         name = tarinfo.name.split('/', 1)[0]
         continue
 
+      if '-debug-' in name:
+        continue
+
       if tarinfo.name.endswith('/depends'):
         continue
 
@@ -154,7 +157,10 @@ def main(db: Path, lib_re: re.Pattern, dep_pkgname: Optional[str]) -> None:
 
         it = iter(data.splitlines())
         while True:
-          l = next(it)
+          try:
+            l = next(it)
+          except StopIteration:
+            break
           if l == '%FILENAME%':
             filename = next(it)
             break
