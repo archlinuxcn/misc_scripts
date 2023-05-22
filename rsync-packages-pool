@@ -1,6 +1,6 @@
 #!/bin/bash
 
-rsync -rtlivH --delete-after --delay-updates --safe-links --contimeout=60 --include='/pool/' --include='/pool/**' --exclude='*' mirror.pkgbuild.com::packages/ /data/archlinux
+rsync -rtlivH --delete-after --delay-updates --safe-links --contimeout=60 --include='/pool/' --exclude='.~tmp~' --include='/pool/**' --exclude='*' mirror.pkgbuild.com::packages/ /data/archlinux
 
 # 24 - Partial transfer due to vanished source files
 # 23 - Partial transfer due to error: sender failed to open temporary files
