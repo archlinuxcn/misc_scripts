@@ -17,7 +17,8 @@ struct Result {
 struct Mirror {
   url: url::Url,
   protocol: String,
-  delay: Option<u32>,
+  // it can be negative
+  delay: Option<i32>,
   active: bool,
   country_code: String,
 }
