@@ -6,16 +6,26 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Set, List, Dict, Tuple
+from typing import Tuple
 
 import archpkg
 
 repo_path: Path = Path('/data/repo')
 gitrepo_path: Path = Path('~/archgitrepo').expanduser()
-packages_paths: List[Path] = [
-  Path('~/archgitrepo/archlinuxcn').expanduser(),
-  Path('~/archgitrepo/alarmcn').expanduser(),
-]
+
+packages_paths: dict[str, Path] = {
+  'x86_64': Path('~/archgitrepo/archlinuxcn').expanduser(),
+  'aarch64': Path('~/archgitrepo/alarmcn').expanduser(),
+}
+# map other archs that are managed in another arch's directory
+arch_maps = {
+  'i686': 'x86_64',
+  'armv7h': 'aarch64',
+  # these aren't actually used by [archlinuxcn]
+  'arm': 'aarch64',
+  'armv6h': 'aarch64',
+}
+
 max_keep: int = 2
 DRY_RUN: bool = False
 
@@ -23,7 +33,7 @@ re_package = re.compile(r'package(?:_(.+))?\s*\(')
 
 def search_pkgbuild_for_pkgname(
   pkgbuild: Path,
-) -> Set[str]:
+) -> set[str]:
   ret = set()
   try:
     with open(pkgbuild) as f:
@@ -40,15 +50,15 @@ def search_pkgbuild_for_pkgname(
 
   return ret
 
-def get_all_pkgnames() -> Set[str]:
-  ret = set()
-  for p in packages_paths:
-    ret |= get_all_pkgnames_for_path(p)
+def get_all_pkgnames() -> dict[str, set[str]]:
+  ret = {}
+  for arch, p in packages_paths.items():
+    ret[arch] = get_all_pkgnames_for_path(p)
   return ret
 
-def get_all_pkgnames_for_path(p: Path) -> Set[str]:
+def get_all_pkgnames_for_path(p: Path) -> set[str]:
   # also see lilac2.packages.get_all_pkgnames
-  packages: Set[str] = set()
+  packages: set[str] = set()
   for ly in p.glob('*/lilac.yaml'):
 
     pkgfile = ly.with_name('package.list')
@@ -81,9 +91,9 @@ def remove_pkg(path: Path) -> None:
     except FileNotFoundError:
       pass
 
-def clean(path: Path, all_packages: Set[str]) -> None:
-  pkgs: Dict[str, List[Tuple[archpkg.PkgNameInfo, Path]]] = defaultdict(list)
-  debug_pkgs: List[Path] = []
+def clean(path: Path, all_packages: dict[str, set[str]]) -> None:
+  pkgs: dict[str, list[Tuple[archpkg.PkgNameInfo, Path]]] = defaultdict(list)
+  debug_pkgs: list[Path] = []
 
   for f in path.iterdir():
     if f.name[0] == '.':
@@ -97,7 +107,13 @@ def clean(path: Path, all_packages: Set[str]) -> None:
       else:
         name = pkg.name
 
-      if name not in all_packages:
+      if pkg.arch == 'any':
+        removed = not any(name in s for s in all_packages.values())
+      else:
+        dir_arch = arch_maps.get(pkg.arch, pkg.arch)
+        removed = name not in all_packages.get(dir_arch, {})
+
+      if removed:
         print('package %s removed, removing file %s.' % (pkg.name, f))
         remove_pkg(f)
       else:
