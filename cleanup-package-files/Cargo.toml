@@ -5,11 +5,11 @@ authors = ["lilydjwg <lilydjwg@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-nix = "*"
 eyre = "*"
 expanduser = "*"
 # since 1.4.0 it uses thiserror instead of failure
 pwd = "1.4"
+nix = { version = "*", features = ["fs", "user"] }
 
 [dependencies.structopt]
 version = "*"

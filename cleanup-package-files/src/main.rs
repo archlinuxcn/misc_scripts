@@ -52,7 +52,7 @@ fn main() -> Result<()> {
   nix::unistd::setuid(nix::unistd::Uid::from_raw(pwd.uid))?;
 
   if opt.real {
-    flock(&expanduser(LILAC_LOCK)?)?;
+    flock(expanduser(LILAC_LOCK)?)?;
   }
   let mut path = expanduser(LILAC_REPO)?;
   path.push(&opt.pkgname);
