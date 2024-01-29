@@ -15,7 +15,7 @@ import re
 from ruamel.yaml import round_trip_dump
 from ruamel.yaml.util import load_yaml_guess_indent
 
-from github import GitHub, Issue
+from github import GitHub, Issue, IssueStateReason
 from myutils import file_lock
 
 from lilac2.lilacyaml import (
@@ -65,7 +65,7 @@ def process_package_requests(
 
 This request has been waiting for its maintainer for too long, closing.''')
       issue.add_labels(['request-failed'])
-      issue.close()
+      issue.close(IssueStateReason.not_planned)
 
 def process_one_orphaned(
   name: str,
