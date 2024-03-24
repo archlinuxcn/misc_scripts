@@ -8,4 +8,4 @@ create table cnmirror_delay (
   delay integer not null
 );
 
-create index ts_idx on cnmirror_delay (ts);
+create unique index ts_name_idx on cnmirror_delay (ts, name);

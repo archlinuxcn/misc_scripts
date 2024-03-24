@@ -9,6 +9,7 @@ edition = "2021"
 chrono = { version = "*", default-features = false, features = ["serde"] }
 eyre = "*"
 futures = "*"
+httpdate = "*"
 psl = "*"
 rand = "*"
 rand_distr = "*"

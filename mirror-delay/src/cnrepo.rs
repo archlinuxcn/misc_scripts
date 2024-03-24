@@ -1,3 +1,5 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use serde::Deserialize;
 use sqlx::postgres;
 
@@ -11,14 +13,17 @@ struct Mirror {
 }
 
 pub async fn do_work(pool: &postgres::PgPool) -> eyre::Result<()> {
-  let mirrors: Vec<Mirror> =
-    reqwest::get("https://build.archlinuxcn.org/~imlonghao/status/status.json").await?
-    .json().await?;
-  send_stats(mirrors, pool).await?;
+  let res = reqwest::get("https://build.archlinuxcn.org/~imlonghao/status/status.json").await?;
+  let t = res.headers().get(reqwest::header::LAST_MODIFIED)
+    .and_then(|x| httpdate::parse_http_date(x.to_str().ok()?).ok())
+    .unwrap_or_else(SystemTime::now);
+  let mirrors: Vec<Mirror> = res.json().await?;
+  send_stats(t.duration_since(UNIX_EPOCH)?.as_secs() as i64, mirrors, pool).await?;
   Ok(())
 }
 
 async fn send_stats(
+  t: i64,
   mirrors: Vec<Mirror>,
   pool: &postgres::PgPool,
 ) -> sqlx::Result<()> {
@@ -26,7 +31,14 @@ async fn send_stats(
   for m in mirrors.into_iter().filter(|m| m.lastupdate != 0) {
     let name = name_from_url(&m.url);
     let delay = m.diff;
-    sqlx::query("insert into cnmirror_delay (name, delay) values ($1, $2)")
+    sqlx::query("
+        insert into cnmirror_delay
+          (ts, name, delay)
+        values
+          (to_timestamp($1), $2, $3)
+        on conflict do nothing
+      ")
+      .bind(t)
       .bind(name)
       .bind(delay as i32)
       .execute(&mut *tx)
