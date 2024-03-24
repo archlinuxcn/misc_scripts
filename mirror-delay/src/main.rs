@@ -38,15 +38,15 @@ async fn async_main() {
 
 async fn do_work(to: Duration, pool: &postgres::PgPool) {
   use tokio::time::timeout;
-  let (b,) = futures::join!(
-    // timeout(to, official::do_work()),
+  let (a, b) = futures::join!(
+    timeout(to, official::do_work()),
     timeout(to, cnrepo::do_work(pool)),
   );
 
-  // match a {
-  //   Ok(Err(e)) => { eprintln!("Error for official mirror stats: {:?}", e); }
-  //   _ => { eprintln!("Timed out for official mirror stats"); }
-  // }
+  match a {
+    Ok(Err(e)) => { eprintln!("Error for official mirror stats: {:?}", e); }
+    _ => { eprintln!("Timed out for official mirror stats"); }
+  }
   match b {
     Ok(Err(e)) => { eprintln!("Error for archlinuxcn mirror stats: {:?}", e); }
     Ok(_) => { }
