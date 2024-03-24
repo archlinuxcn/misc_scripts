@@ -45,7 +45,8 @@ async fn do_work(to: Duration, pool: &postgres::PgPool) {
 
   match a {
     Ok(Err(e)) => { eprintln!("Error for official mirror stats: {:?}", e); }
-    _ => { eprintln!("Timed out for official mirror stats"); }
+    Ok(_) => { }
+    Err(_) => { eprintln!("Timed out for official mirror stats"); }
   }
   match b {
     Ok(Err(e)) => { eprintln!("Error for archlinuxcn mirror stats: {:?}", e); }
