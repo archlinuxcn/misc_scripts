@@ -12,10 +12,10 @@ mod cnrepo;
 
 async fn async_main() {
   let rate = 1.0 / (8.0 * 60.0);
-  let timeout = Duration::from_secs(2);
+  let timeout = Duration::from_secs(5);
 
   let pool = postgres::PgPoolOptions::new()
-    .max_connections(2)
+    .max_connections(3)
     .after_connect(|conn, _meta| Box::pin(async move {
       conn.execute("set search_path to 'mirror_delay'").await?;
       Ok(())
