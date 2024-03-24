@@ -1,8 +1,5 @@
-use std::net::TcpStream;
-use std::time::Duration;
-use std::io::Write;
-
 use serde::Deserialize;
+use sqlx::postgres;
 
 use super::util::name_from_url;
 
@@ -13,41 +10,29 @@ struct Mirror {
   diff: u32,
 }
 
-pub fn do_work() -> reqwest::Result<()> {
-  let mirrors: Vec<Mirror> = reqwest::blocking::get("https://build.archlinuxcn.org/~imlonghao/status/status.json")?.json()?;
-  send_stats(mirrors);
+pub async fn do_work(pool: &postgres::PgPool) -> eyre::Result<()> {
+  let mirrors: Vec<Mirror> =
+    reqwest::get("https://build.archlinuxcn.org/~imlonghao/status/status.json").await?
+    .json().await?;
+  send_stats(mirrors, pool).await?;
   Ok(())
 }
 
-fn send_stats(mirrors: Vec<Mirror>) {
-  if let Err(e) = send_stats_real(mirrors) {
-    eprintln!("Error while sending stats: {:?}", e);
-  }
-}
-
-fn send_stats_real(mirrors: Vec<Mirror>) -> std::io::Result<()> {
-  let t = timestamp();
-  let mut sock = TcpStream::connect(("localhost", 2003))?;
-  sock.set_write_timeout(Some(Duration::from_secs(1)))?;
-  for m in mirrors {
-    if m.lastupdate == 0 { // failed
-      continue;
-    }
-    let stat = format!(
-      "stats.cnrepo_mirrors.{}.delay {} {}\n",
-      name_from_url(&m.url),
-      m.diff,
-      t,
-    );
-    sock.write_all(stat.as_bytes())?;
+async fn send_stats(
+  mirrors: Vec<Mirror>,
+  pool: &postgres::PgPool,
+) -> sqlx::Result<()> {
+  let mut tx = pool.begin().await?;
+  for m in mirrors.into_iter().filter(|m| m.lastupdate != 0) {
+    let name = name_from_url(&m.url);
+    let delay = m.diff;
+    sqlx::query("insert into cnmirror_delay (name, delay) values ($1, $2)")
+      .bind(name)
+      .bind(delay as i32)
+      .execute(&mut *tx)
+      .await?;
   }
 
+  tx.commit().await?;
   Ok(())
-}
-
-fn timestamp() -> u64 {
-  use std::time::{SystemTime, UNIX_EPOCH};
-  let now = SystemTime::now();
-  let elapsed = now.duration_since(UNIX_EPOCH).unwrap();
-  elapsed.as_secs()
 }

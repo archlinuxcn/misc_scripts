@@ -33,9 +33,7 @@ impl Iterator for Timer {
         // the amount of time from the previous line).
         self.desired += Duration::from_nanos(nanos as u64);
 
-        // sleep if appropriate, or warn if we are behind in sampling
         if self.desired > elapsed {
-            std::thread::sleep(self.desired - elapsed);
             Some(Ok(self.desired - elapsed))
         } else {
             Some(Err(elapsed - self.desired))
