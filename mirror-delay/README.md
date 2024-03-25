@@ -26,12 +26,13 @@ grant select on all tables in schema mirror_delay to grafana;
 Grafana panel SQL:
 
 ```pgsql
-select 
-  $__timeGroupAlias(ts,$__interval),
+select
+  ts as time,
   name,
-  avg(delay) filter (where ts <= ts and ts > ts - '24 hours'::interval) over (partition by name order by ts desc) as delay
+  avg(delay) filter (where ts > ts - '24 hours'::interval) over (partition by name order by ts asc) as delay
 from mirror_delay.cnmirror_delay
 where
-  $__timeFilter(ts)
+  ts > $__timeFrom()::timestamp - '24 hours'::interval and ts <= $__timeTo()
+  and name != 'archlinuxcn'
 order by ts asc
 ```
