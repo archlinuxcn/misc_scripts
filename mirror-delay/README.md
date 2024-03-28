@@ -29,7 +29,7 @@ Grafana panel SQL:
 select
   ts as time,
   name,
-  avg(delay) filter (where ts > ts - '24 hours'::interval) over (partition by name order by ts asc) as delay
+  avg(delay) over (partition by name order by ts asc range between '1 day' preceding and current row) as delay
 from mirror_delay.cnmirror_delay
 where
   ts > $__timeFrom()::timestamp - '24 hours'::interval and ts <= $__timeTo()
