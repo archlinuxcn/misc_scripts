@@ -12,7 +12,7 @@ from typing import List, Optional, Set, Iterator
 from collections import defaultdict
 import re
 
-from ruamel.yaml import round_trip_dump
+from ruamel.yaml import YAML
 from ruamel.yaml.util import load_yaml_guess_indent
 
 from github import GitHub, Issue, IssueStateReason
@@ -194,8 +194,8 @@ def remove_repo_depends(pkgdir: pathlib.Path, packages: List[str]) -> bool:
     if len(lilac_yaml['repo_depends']) == 0:
       del lilac_yaml['repo_depends']
     with open(lilac_yaml_path, 'w') as f:
-      round_trip_dump(lilac_yaml, stream=f, indent=indent,
-                      block_seq_indent=block_seq_indent)
+      YAML().dump(lilac_yaml, stream=f, indent=indent,
+                  block_seq_indent=block_seq_indent)
     subprocess.check_call(['git', 'add', pkgdir.name], cwd=REPO)
     return True
   else:
@@ -215,8 +215,8 @@ def remove_maintainers(pkgdir: pathlib.Path) -> None:
   lilac_yaml['maintainers'] = []
 
   with open(lilac_yaml_path, 'w') as f:
-    round_trip_dump(lilac_yaml, stream=f, indent=indent,
-                    block_seq_indent=block_seq_indent)
+    YAML().dump(lilac_yaml, stream=f, indent=indent,
+                block_seq_indent=block_seq_indent)
   subprocess.check_call(['git', 'add', pkgdir.name], cwd=REPO)
 
 def process_in_official(
