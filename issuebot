@@ -194,8 +194,11 @@ def remove_repo_depends(pkgdir: pathlib.Path, packages: List[str]) -> bool:
     if len(lilac_yaml['repo_depends']) == 0:
       del lilac_yaml['repo_depends']
     with open(lilac_yaml_path, 'w') as f:
-      YAML().dump(lilac_yaml, stream=f, indent=indent,
-                  block_seq_indent=block_seq_indent)
+      yaml = YAML()
+      yaml.preserve_quotes = True
+      yaml.default_flow_style = None
+      yaml.indent(sequence=block_seq_indent, offset=indent)
+      yaml.dump(lilac_yaml, stream=f)
     subprocess.check_call(['git', 'add', pkgdir.name], cwd=REPO)
     return True
   else:
@@ -215,8 +218,11 @@ def remove_maintainers(pkgdir: pathlib.Path) -> None:
   lilac_yaml['maintainers'] = []
 
   with open(lilac_yaml_path, 'w') as f:
-    YAML().dump(lilac_yaml, stream=f, indent=indent,
-                block_seq_indent=block_seq_indent)
+    yaml = YAML()
+    yaml.preserve_quotes = True
+    yaml.default_flow_style = None
+    yaml.indent(sequence=block_seq_indent, offset=indent)
+    yaml.dump(lilac_yaml, stream=f)
   subprocess.check_call(['git', 'add', pkgdir.name], cwd=REPO)
 
 def process_in_official(
