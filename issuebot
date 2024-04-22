@@ -197,7 +197,7 @@ def remove_repo_depends(pkgdir: pathlib.Path, packages: List[str]) -> bool:
       yaml = YAML()
       yaml.preserve_quotes = True
       yaml.default_flow_style = None
-      yaml.indent(sequence=block_seq_indent, offset=indent)
+      yaml.indent(sequence=indent, offset=block_seq_indent)
       yaml.dump(lilac_yaml, stream=f)
     subprocess.check_call(['git', 'add', pkgdir.name], cwd=REPO)
     return True
@@ -221,7 +221,7 @@ def remove_maintainers(pkgdir: pathlib.Path) -> None:
     yaml = YAML()
     yaml.preserve_quotes = True
     yaml.default_flow_style = None
-    yaml.indent(sequence=block_seq_indent, offset=indent)
+    yaml.indent(sequence=indent, offset=block_seq_indent)
     yaml.dump(lilac_yaml, stream=f)
   subprocess.check_call(['git', 'add', pkgdir.name], cwd=REPO)
 
