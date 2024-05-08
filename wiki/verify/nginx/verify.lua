@@ -1,4 +1,4 @@
-local KEY = "qUqhrsWQK6GntwMK-aexCxEKnS57XqjwwNuTj3jDTg8="
+local KEY = "..."
 local cookie = require("cookie")
 local ffi = require("ffi")
 ffi.cdef[[
