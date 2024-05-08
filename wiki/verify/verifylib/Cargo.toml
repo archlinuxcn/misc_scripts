@@ -1,0 +1,12 @@
+[package]
+name = "verifylib"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "verifylib"
+crate-type = ["cdylib"]
+
+[dependencies]
+eyre = "*"
+fernet = "*"

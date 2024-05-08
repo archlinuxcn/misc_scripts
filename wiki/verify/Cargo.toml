@@ -1,0 +1,8 @@
+[workspace]
+members = [ "verifyapi",
+  "verifylib",
+]
+resolver = "2"
+
+[profile.release]
+lto = true

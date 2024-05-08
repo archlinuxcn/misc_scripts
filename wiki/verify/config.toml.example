@@ -1,0 +1,5 @@
+listen_port = 3214
+listen_ip = "127.0.0.1"
+recaptcha_key = "..."
+fernet_key = "..."
+valid_domains = ["wiki.archlinuxcn.org"]
