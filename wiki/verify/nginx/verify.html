@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
 <title>安全检查</title>
 <meta charset=utf-8>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src='https://www.recaptcha.net/recaptcha/api.js'></script>
 <script type="text/javascript">
 async function check_response(token) {
@@ -13,7 +14,11 @@ async function check_response(token) {
   const j = await r.json()
   if(j.status == 'ok') {
     let params = new URL(document.location).searchParams
-    location.replace(params.get('url') || '/')
+    let url = params.get('url') || '/'
+    if(url.indexOf('/') !== 0) {
+      url = '/'
+    }
+    location.replace(url)
   } else {
     location.reload()
   }
