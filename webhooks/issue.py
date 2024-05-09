@@ -75,6 +75,8 @@ def parse_issue_text(text: str) -> Tuple[Optional[IssueType], Set[str]]:
         if line.lower().startswith(('* [x] ', '- [x] ')):
           continue
         firstword = firstword_m.group()
+        if firstword == '请在此填写包名':
+          continue
         packages.append(firstword)
 
   packages = map_pkgnames(packages)
