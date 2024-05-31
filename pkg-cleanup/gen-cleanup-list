@@ -4,7 +4,7 @@ from pathlib import Path
 import logging
 from collections import defaultdict
 import time
-from typing import NamedTuple, Tuple, List
+from typing import NamedTuple, Any
 import pickle
 
 import requests
@@ -35,7 +35,10 @@ STATS_END = time.strftime('%Y%m')
 
 s = requests.Session()
 
-def get_dl_count(name: str) -> int:
+def get_dl_count(cache: dict[str, int], name: str) -> int:
+  if (c := cache.get(name)) is not None:
+    return c
+
   r = s.get(
     'https://archlinuxcn-pkgstats.imlonghao.workers.dev/',
     params = {
@@ -44,9 +47,14 @@ def get_dl_count(name: str) -> int:
     },
   )
   j = r.json()
-  return j['count']
+  c = j['count']
+  cache[name] = c
+  return c
 
-def get_stats_info(name: str) -> Tuple[int, int]:
+def get_stats_info(cache: dict[str, tuple[int, int]], name: str) -> tuple[int, int]:
+  if (d := cache.get(name)) is not None:
+    return d
+
   r = s.get(
     f'https://pkgstats.archlinux.de/api/packages/{name}',
     params = {
@@ -55,9 +63,27 @@ def get_stats_info(name: str) -> Tuple[int, int]:
     },
   )
   j = r.json()
-  return j['count'], j['samples']
+  d = j['count'], j['samples']
+  cache[name] = d
+  return d
 
 def gather_data() -> None:
+  try:
+    with open('cache.pickle', 'rb') as f:
+      cache = pickle.load(f)
+  except FileNotFoundError:
+    cache = {
+      'dl_count': {},
+      'pkgstats': {},
+    }
+
+  try:
+    gather_data_real(cache)
+  finally:
+    with open('cache.pickle', 'wb') as f:
+      pickle.dump(cache, f)
+
+def gather_data_real(cache: dict[Any, Any]) -> None:
   repodir = Path(const.REPODIR)
   who_maint_what = defaultdict(list)
   for pkgdir in lilacyaml.iter_pkgdir(repodir):
@@ -71,9 +97,9 @@ def gather_data() -> None:
     pkgstats_samples = 0
     for _, pkgname in packages:
       total_pkgstats_cn_count += restart_if_failed(
-        get_dl_count, 5, (pkgname,))
+        get_dl_count, 5, (cache['dl_count'], pkgname))
       cur_pkgstat_count, pkgstats_samples = restart_if_failed(
-        get_stats_info, 5, (pkgname,))
+        get_stats_info, 5, (cache['pkgstats'], pkgname))
       total_pkgstats_count += cur_pkgstat_count
     info = PkgInfo(
       name,
@@ -88,7 +114,7 @@ def gather_data() -> None:
   with open('data.save', 'wb') as f:
     pickle.dump(who_maint_what, f)
 
-def gen_comments() -> List[str]:
+def gen_comments() -> list[str]:
   with open('data.save', 'rb') as f:
     who_maint_what = pickle.load(f)
 
