@@ -1,11 +1,16 @@
 #!/usr/bin/python3
 
+from __future__ import annotations
+
 from pathlib import Path
 import logging
 from collections import defaultdict
 import time
-from typing import NamedTuple, Any
+from typing import Optional, Any, TYPE_CHECKING
 import pickle
+import dataclasses
+if TYPE_CHECKING:
+  import datetime
 
 import requests
 
@@ -18,11 +23,14 @@ import const
 
 logger = logging.getLogger(__name__)
 
-class PkgInfo(NamedTuple):
+@dataclasses.dataclass
+class PkgInfo:
   pkgbase: str
   dl_count: int
   stats_count: int
   stats_samples: int
+  fail_count: Optional[int] = None
+  fail_since: Optional[int] = None
 
   @property
   def stats_popularity(self) -> float:
@@ -102,28 +110,37 @@ def gather_data_real(cache: dict[Any, Any]) -> None:
         get_stats_info, 5, (cache['pkgstats'], pkgname))
       total_pkgstats_count += cur_pkgstat_count
     info = PkgInfo(
-      name,
-      total_pkgstats_cn_count,
-      total_pkgstats_count,
-      pkgstats_samples,
+      pkgbase = name,
+      dl_count = total_pkgstats_cn_count,
+      stats_count = total_pkgstats_count,
+      stats_samples = pkgstats_samples,
     )
     logger.info('Queried: %s', info)
     for m in y.get('maintainers', []):
       who_maint_what[m['github']].append(info)
 
+  save_data(who_maint_what)
+
+def save_data(data: dict[str, list[PkgInfo]]) -> None:
   with open('data.save', 'wb') as f:
-    pickle.dump(who_maint_what, f)
+    pickle.dump(data, f)
+
+def load_data() -> dict[str, list[PkgInfo]]:
+  with open('data.save', 'rb') as f:
+    return pickle.load(f)
 
 def gen_comments() -> list[str]:
-  with open('data.save', 'rb') as f:
-    who_maint_what = pickle.load(f)
-
+  who_maint_what = load_data()
   ret = []
   for who, pkgs in sorted(who_maint_what.items()):
     msg = [f'@{who}:']
-    pkgs.sort(key=lambda x: (x.dl_count + x.stats_count, x.pkgbase))
+    pkgs.sort(key=lambda x: (-x.fail_since if x.fail_since else 0, x.dl_count + x.stats_count, x.pkgbase))
     for x in pkgs:
-        msg.append(f'* [ ] {x.pkgbase} ({x.dl_count}) ({x.stats_count}; {x.stats_popularity:0.2f})')
+      line = f'* [ ] {x.pkgbase} (⬇️{x.dl_count} 📊{x.stats_count}🔥{x.stats_popularity:0.2f}'
+      if x.fail_since is not None:
+        line += f' ❌{x.fail_count} since {x.fail_since} days'
+      line += ')'
+      msg.append(line)
     ret.append('\n'.join(msg))
 
   return ret
@@ -144,14 +161,71 @@ def post_comments(token: str, issue: int) -> None:
     # https://developer.github.com/v3/guides/best-practices-for-integrators/#dealing-with-abuse-rate-limits
     time.sleep(1)
 
+def annotate_build_results() -> None:
+  import datetime
+
+  data = load_data()
+  pkgs = list(set(x.pkgbase for v in data.values() for x in v))
+  now = datetime.datetime.now().astimezone()
+  pkg_build_status = load_build_status_count(pkgs, now)
+
+  for v in data.values():
+    for x in v:
+      if cs := pkg_build_status.get(x.pkgbase):
+        x.fail_count, x.fail_since = cs
+
+  save_data(data)
+
+def load_build_status_count(
+  pkgs: list[str],
+  now: datetime.datetime,
+) -> dict[str, tuple[int, Optional[int]]]:
+  from itertools import groupby, takewhile
+  import psycopg2
+
+  logging.info('loading data from Postgres...')
+  conn = psycopg2.connect('')
+  with conn:
+    cursor = conn.cursor()
+    cursor.execute('select pkgbase, ts, result from lilac.pkglog where pkgbase = any(%s) order by pkgbase, ts desc', (pkgs,))
+    rows = cursor.fetchall()
+  logging.info('loaded data from Postgres.')
+
+  pkg_to_result = {}
+  for k, g in groupby(rows, key=lambda row: row[0]):
+    rs = list(takewhile(lambda row: row[2] == 'failed', g))
+    if rs:
+      days = (now - rs[-1][1]).days
+    else:
+      days = None
+    pkg_to_result[k] = len(rs), days
+
+  return pkg_to_result
+
 def print_data() -> None:
   comments = gen_comments()
   for c in comments:
     print(c, end='\n\n')
 
+def convert_data():
+  data = load_data()
+
+  for k, v in data.items():
+    v[:] = [
+      PkgInfo(
+        pkgbase = x.pkgbase,
+        dl_count = x.dl_count,
+        stats_count = x.stats_count,
+        stats_samples = x.stats_samples,
+      ) for x in v]
+
+  save_data(data)
+
 if __name__ == '__main__':
   from nicelogger import enable_pretty_logging
   enable_pretty_logging('DEBUG')
   # gather_data()
+  # convert_data()
+  # annotate_build_results()
   print_data()
   # post_comments(const.GITHUB_TOEKN, const.ISSUE_NR)
