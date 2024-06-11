@@ -8,6 +8,7 @@ import time
 
 from fluxbbclient import FluxBB
 from nicelogger import enable_pretty_logging
+from htmlutils import parse_document_from_requests
 
 def main(args):
   with open(args.config, 'rb') as fp:
@@ -20,12 +21,12 @@ def main(args):
   while True:
     try:
       run_once(f, config)
+      time.sleep(600)
     except Exception:
       logging.exception('error')
     except KeyboardInterrupt:
       print()
       break
-    time.sleep(600)
 
 def run_once(f, config):
   try:
@@ -46,8 +47,19 @@ def run_once(f, config):
 
   for p in new_posts:
     logging.info('got post: %r', p)
-    message = f'论坛新帖：{p.title}（by {p.author}）\n{p.link}'
-    html_message = f'论坛新帖：<a href="{p.link}">{p.title}</a>（by {p.author}）'
+    if p.subforum == 'Off-Topic':
+      continue
+
+    r = f.request(f'{p.link}&action=new')
+    anchor = r.url.split('#')[1]
+    doc = parse_document_from_requests(r)
+    post = doc.xpath(f'//div[@id="{anchor}"]')[0]
+    nr = post.xpath('.//span[@class="conr"]')[0].text
+    if nr != '#1':
+      continue
+
+    message = f'论坛新帖：[{p.subforum}] {p.title}（by {p.author}）\n{p.link}'
+    html_message = f'论坛新帖：[{p.subforum}]<a href="{p.link}">{p.title}</a>（by {p.author}）'
     msg = {
       'cmd': 'send_message',
       'target': target,
@@ -62,6 +74,12 @@ def run_once(f, config):
     f.mark_all_as_read(doc)
 
 if __name__ == '__main__':
+  try:
+    import setproctitle
+    setproctitle.setproctitle('check-posts')
+  except ImportError:
+    pass
+
   enable_pretty_logging(logging.DEBUG)
   import argparse
   parser = argparse.ArgumentParser(description='Arch Linux 中文论坛新帖转发')
