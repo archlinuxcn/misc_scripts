@@ -1,44 +1,39 @@
 #!/usr/bin/python3
 
+import sys, os
 import json
 from pathlib import Path
 import logging
 from collections import defaultdict
 from copy import deepcopy
 import time
-import subprocess
+
+import pygit2
 
 import yamlutils
 from lilac2 import lilacyaml
 import const
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../pylib'))
+import gitutils
 
 logger = logging.getLogger(__name__)
 
 REPODIR = Path(const.REPODIR)
 lilac_mail = 'lilac@build.archlinuxcn.org'
 
-def check_last_git_update(pkg):
-  cmd = [
-    "git", "log", "--format=%at %ae", "--", pkg,
-  ]
+def get_last_git_update():
+  repo = pygit2.Repository(REPODIR)
+  stop_time = time.time() - 30 * 86400
+  package_last_update = defaultdict(int)
+  for commit in gitutils.iter_commits(repo, stop_time, lilac_mail):
+    if len(commit.parents) == 1:
+      diff = repo.diff(commit, commit.parents[0])
+      pkgs = gitutils.get_touched_packages(diff)
+      for pkg in pkgs:
+        package_last_update[pkg] = max(package_last_update[pkg], commit.commit_time)
 
-  p = subprocess.Popen(
-    cmd, stdout=subprocess.PIPE, universal_newlines=True,
-    cwd = REPODIR,
-  )
-
-  try:
-    stdout = p.stdout
-    while True:
-      line = stdout.readline()
-      t, email = line.rstrip().split(None, 1)
-      if int(t) < time.time() - 30 * 86400:
-        return False
-      if email == lilac_mail:
-        continue
-      return True
-  finally:
-    p.terminate()
+  return package_last_update
 
 def main():
   with open('/home/lilydjwg/tmpfs/removed.json') as f:
@@ -73,9 +68,10 @@ def main():
       for m in old[name]:
         pkgs_to_remove[m].append(name)
 
+  package_last_update = get_last_git_update()
   for pkgs in pkgs_to_remove.values():
     for pkg in pkgs[:]:
-      if check_last_git_update(pkg):
+      if package_last_update.get(('archlinuxcn', pkg)):
         pkgs.remove(pkg)
 
   with open('/home/lilydjwg/tmpfs/update.yaml', 'w') as f:
