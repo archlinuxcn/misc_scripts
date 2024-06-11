@@ -18,7 +18,7 @@ struct Ipc {
 #[serde(tag="cmd")]
 enum Message {
   #[serde(rename="send_message")]
-  SendMessage { target: OwnedRoomOrAliasId, content: String },
+  SendMessage { target: OwnedRoomOrAliasId, content: String, html_content: Option<String> },
 }
 
 async fn handle_msg(ipc: &Ipc, msg: &[u8]) -> Result<()> {
@@ -26,7 +26,7 @@ async fn handle_msg(ipc: &Ipc, msg: &[u8]) -> Result<()> {
   event!(Level::DEBUG, msg = msg_str, "got message");
   let msg = serde_json::from_str(msg_str)?;
   match msg {
-    Message::SendMessage { target, content } => {
+    Message::SendMessage { target, content, html_content } => {
       let room_id = if target.is_room_alias_id() {
         let alias: OwnedRoomAliasId = target.try_into().unwrap();
         ipc.client.resolve_room_alias(&alias).await?.room_id
@@ -35,7 +35,11 @@ async fn handle_msg(ipc: &Ipc, msg: &[u8]) -> Result<()> {
       };
       if let Some(room) = ipc.client.get_room(&room_id) {
         event!(Level::INFO, msg = msg_str, "sending message");
-        room.send(RoomMessageEventContent::text_plain(content)).await?;
+        let msg = match html_content {
+          Some(html) => RoomMessageEventContent::text_html(content, html),
+          None => RoomMessageEventContent::text_plain(content),
+        };
+        room.send(msg).await?;
       } else {
         event!(Level::ERROR, msg = msg_str, "room not found");
       }
