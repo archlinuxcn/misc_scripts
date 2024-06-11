@@ -1,0 +1,76 @@
+#![allow(clippy::uninlined_format_args)]
+
+use std::time::Duration;
+
+use matrix_sdk::{
+  config::SyncSettings, ruma,
+};
+use matrix_sdk_base::store::{StateStoreDataKey, StateStoreDataValue};
+
+use clap::Parser;
+use tracing::info;
+
+mod util;
+mod login;
+mod verification;
+mod ipc;
+
+use util::Result;
+
+#[derive(Parser)]
+struct Args {
+  #[arg(long)]
+  login: bool,
+  #[arg(long)]
+  verification: bool,
+  #[arg(long, help="ipc socket path")]
+  ipc_socket: Option<String>,
+  #[arg(long, help="login info file", default_value="login.json")]
+  logininfo: String,
+  #[arg(long, default_value="info")]
+  loglevel: String,
+}
+
+fn main() -> Result<()> {
+  let args = Args::parse();
+  util::setup_logging(&args.loglevel)?;
+
+  let rt = tokio::runtime::Builder::new_current_thread()
+    .enable_all()
+    .build()
+    .unwrap();
+  rt.block_on(async_main(args))
+}
+
+// TODO: graceful shutdown
+
+async fn async_main(args: Args) -> Result<()> {
+  let client = if args.login {
+    login::interactive_login(&args.logininfo).await?
+  } else {
+    login::get_client(&args.logininfo).await?
+  };
+
+  let sync_token = client.store().get_kv_data(StateStoreDataKey::SyncToken).await?;
+  let mut sync_settings = SyncSettings::new()
+    .timeout(Duration::from_secs(600))
+    .set_presence(ruma::presence::PresenceState::Unavailable);
+  if let Some(StateStoreDataValue::SyncToken(token)) = sync_token {
+    sync_settings = sync_settings.token(token);
+  }
+  info!("Syncing once...");
+  client.sync_once(sync_settings.clone()).await?;
+  info!("Synced.");
+
+  if args.verification {
+    verification::enable_verification(&client);
+  }
+
+  if let Some(path) = args.ipc_socket {
+    ipc::enable(client.clone(), path)?;
+  }
+
+  client.sync(sync_settings).await?;
+
+  Ok(())
+}
