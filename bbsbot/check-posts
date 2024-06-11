@@ -1,0 +1,70 @@
+#!/usr/bin/python3
+
+import tomllib
+import logging
+import socket
+import json
+import time
+
+from fluxbbclient import FluxBB
+from nicelogger import enable_pretty_logging
+
+def main(args):
+  with open(args.config, 'rb') as fp:
+    config = tomllib.load(fp)
+
+  f = FluxBB(
+    baseurl = 'https://bbs.archlinuxcn.org/',
+    cookiefile = config['account']['cookiefile'],
+  )
+  while True:
+    try:
+      run_once(f, config)
+    except Exception:
+      logging.exception('error')
+    except KeyboardInterrupt:
+      print()
+      break
+    time.sleep(600)
+
+def run_once(f, config):
+  try:
+    new_posts, doc = f.get_new_posts()
+  except PermissionError:
+    logging.info('login...')
+    if not f.login(
+      config['account']['username'],
+      config['account']['password'],
+    ):
+      raise
+    new_posts, doc = f.get_new_posts()
+
+  matrix_config = config['matrix']
+  target = matrix_config['target_room']
+  s = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+  s.connect(matrix_config['socket_path'])
+
+  for p in new_posts:
+    logging.info('got post: %r', p)
+    message = f'论坛新帖：{p.title}（by {p.author}）\n{p.link}'
+    html_message = f'论坛新帖：<a href="{p.link}">{p.title}</a>（by {p.author}）'
+    msg = {
+      'cmd': 'send_message',
+      'target': target,
+      'content': message,
+      'html_content': html_message,
+    }
+    m = json.dumps(msg, ensure_ascii=False)
+    s.send(m.encode())
+  s.close()
+
+  if new_posts:
+    f.mark_all_as_read(doc)
+
+if __name__ == '__main__':
+  enable_pretty_logging(logging.DEBUG)
+  import argparse
+  parser = argparse.ArgumentParser(description='Arch Linux 中文论坛新帖转发')
+  parser.add_argument('config', help='配置文件')
+  args = parser.parse_args()
+  main(args)

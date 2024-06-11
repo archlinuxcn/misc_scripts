@@ -1,0 +1,8 @@
+[account]
+username = "..."
+password = "..."
+cookiefile = "bbs.cookie"
+
+[matrix]
+socket_path = "../matrixbot/sock"
+target_room = "#room:example.org"
