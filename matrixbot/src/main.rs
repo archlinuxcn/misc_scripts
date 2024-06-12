@@ -39,10 +39,24 @@ fn main() -> Result<()> {
     .enable_all()
     .build()
     .unwrap();
-  rt.block_on(async_main(args))
+  rt.block_on(async_main_wrapper(args))
 }
 
-// TODO: graceful shutdown
+async fn async_main_wrapper(args: Args) -> Result<()> {
+  use futures::future::Either;
+
+  let main_fu = async_main(args);
+  futures::pin_mut!(main_fu);
+  let ctrl_c = tokio::signal::ctrl_c();
+  futures::pin_mut!(ctrl_c);
+
+  match futures::future::select( main_fu, ctrl_c,).await {
+    Either::Left((a, _)) => a?,
+    Either::Right((b, _)) => b?,
+  }
+
+  Ok(())
+}
 
 async fn async_main(args: Args) -> Result<()> {
   let client = if args.login {
