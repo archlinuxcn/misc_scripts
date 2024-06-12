@@ -30,7 +30,7 @@ def main(args):
 
 def run_once(f, config):
   try:
-    new_posts, doc = f.get_new_posts()
+    new_posts, new_posts_doc = f.get_new_posts()
   except PermissionError:
     logging.info('login...')
     if not f.login(
@@ -38,7 +38,7 @@ def run_once(f, config):
       config['account']['password'],
     ):
       raise
-    new_posts, doc = f.get_new_posts()
+    new_posts, new_posts_doc = f.get_new_posts()
 
   matrix_config = config['matrix']
   target = matrix_config['target_room']
@@ -71,7 +71,7 @@ def run_once(f, config):
   s.close()
 
   if new_posts:
-    f.mark_all_as_read(doc)
+    f.mark_all_as_read(new_posts_doc)
 
 if __name__ == '__main__':
   try:
