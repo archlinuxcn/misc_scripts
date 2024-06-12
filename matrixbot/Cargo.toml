@@ -22,7 +22,9 @@ clap = { version = "*", default-features = false, features = ["std", "derive", "
 eyre = "*"
 tracing = "*"
 tracing-subscriber = { version = "*", default-features = false, features = ["env-filter", "fmt", "ansi"] }
-rustyline = { version = "14.0.0", default-features = false }
+rustyline = { version = "*", default-features = false }
+pinentry = "*"
+secrecy = "*"
 
 [profile.dev.package."*"]
 opt-level = 2

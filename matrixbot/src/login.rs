@@ -9,6 +9,7 @@ use matrix_sdk::{
 };
 use matrix_sdk_sqlite::SqliteStateStore;
 use tracing::info;
+use secrecy::ExposeSecret;
 
 use crate::util::Result;
 
@@ -19,6 +20,19 @@ struct LoginInfo {
   user_id: String,
   device_id: String,
   access_token: String,
+}
+
+fn ask_password(account: &ruma::UserId) -> Result<Option<secrecy::Secret<String>>> {
+  if let Some(mut input) = pinentry::PassphraseInput::with_default_binary() {
+    Ok(Some(input
+      .with_title("Input Password")
+      .with_description(&format!("Enter password for account: {account}"))
+      .required("password can't be empty")
+      .interact().map_err(|e| eyre::eyre!("pinentry error: {e}"))?
+    ))
+  } else {
+    Ok(None)
+  }
 }
 
 pub async fn interactive_login<P: AsRef<Path>>(
@@ -43,9 +57,12 @@ pub async fn interactive_login<P: AsRef<Path>>(
 
   let client = Client::builder().server_name(uid.server_name()).build().await?;
 
-  // TODO: use pinentry
-  let password = rl.readline("Password: ")?;
-  client.matrix_auth().login_username(uid, &password).send().await?;
+  let password = if let Some(p) = ask_password(&uid)? {
+    p
+  } else {
+    secrecy::SecretString::new(rl.readline("Password: ")?)
+  };
+  client.matrix_auth().login_username(uid, password.expose_secret()).send().await?;
 
   let login_info = LoginInfo {
     homeserver: client.homeserver(),
