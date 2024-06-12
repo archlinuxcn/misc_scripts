@@ -58,8 +58,8 @@ def run_once(f, config):
     if nr != '#1':
       continue
 
-    message = f'论坛新帖：[{p.subforum}] {p.title}（by {p.author}）\n{p.link}'
-    html_message = f'论坛新帖：[{p.subforum}]<a href="{p.link}">{p.title}</a>（by {p.author}）'
+    message = f'论坛新帖：{p.subforum} » {p.title}（by {p.author}）\n{p.link}'
+    html_message = f'论坛新帖：{p.subforum} » <a href="{p.link}">{p.title}</a>（by {p.author}）'
     msg = {
       'cmd': 'send_message',
       'target': target,
