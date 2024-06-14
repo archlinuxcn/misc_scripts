@@ -6,7 +6,7 @@ import logging
 from typing import Dict, Any, List, Set, Tuple, Optional
 import json
 
-from agithub import Issue, GitHub, Comment, GitHubError
+from agithub import Issue, GitHub, Comment, GitHubError, IssueStateReason
 
 from . import config
 from . import lilac
@@ -156,6 +156,10 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
     return
 
   body = issue.body
+  if not body:
+    await issue.close(IssueStateReason.not_planned)
+    return
+
   issuetype, packages = parse_issue_text(body)
   logger.info('issue type: %s, packages: %s', issuetype, packages)
 
@@ -178,7 +182,7 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
       issue, existing_comment,
       _CANT_PARSE_EDITED if edited else _CANT_PARSE_NEW,
     )
-    await issue.close()
+    await issue.close(IssueStateReason.not_planned)
     return
 
   find_assignees = True
