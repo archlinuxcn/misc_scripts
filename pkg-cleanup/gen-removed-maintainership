@@ -10,7 +10,7 @@ import re
 import const
 from agithub import GitHub
 
-PKG_RE = re.compile(r'^(?:>\s*)?[*-]\s+\[([ xX])\]\s+(\S+)')
+PKG_RE = re.compile(r'^>?\s*[*-]\s+\[([ xX])\]\s+(\S+)')
 
 async def main() -> None:
   gh = GitHub(const.GITHUB_TOEKN)
