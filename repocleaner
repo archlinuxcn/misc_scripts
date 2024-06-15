@@ -101,17 +101,18 @@ def clean(path: Path, all_packages: dict[str, set[str]]) -> None:
 
     if f.name.endswith(('.pkg.tar.xz', '.pkg.tar.zst')):
       pkg = archpkg.PkgNameInfo.parseFilename(f.name)
-      if pkg.name.endswith('-debug'):
-        debug_pkgs.append(f)
-        continue
-      else:
-        name = pkg.name
 
+      name = pkg.name
       if pkg.arch == 'any':
         removed = not any(name in s for s in all_packages.values())
       else:
         dir_arch = arch_maps.get(pkg.arch, pkg.arch)
         removed = name not in all_packages.get(dir_arch, {})
+
+      # if package in all_packages (not removed), we don't count it as a debug package
+      if removed and pkg.name.endswith('-debug'):
+        debug_pkgs.append(f)
+        continue
 
       if removed:
         print('package %s removed, removing file %s.' % (pkg.name, f))
