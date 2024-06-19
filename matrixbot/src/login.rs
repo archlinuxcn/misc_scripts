@@ -55,7 +55,13 @@ pub async fn interactive_login<P: AsRef<Path>>(
     }
   };
 
-  let client = Client::builder().server_name(uid.server_name()).build().await?;
+  let store = SqliteStateStore::open("states", None).await?;
+  let store_config = matrix_sdk::config::StoreConfig::new()
+    .state_store(store);
+  let client = Client::builder()
+    .store_config(store_config)
+    .server_name(uid.server_name())
+    .build().await?;
 
   let password = if let Some(p) = ask_password(&uid)? {
     p

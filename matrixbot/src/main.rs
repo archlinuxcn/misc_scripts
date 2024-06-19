@@ -50,7 +50,7 @@ async fn async_main_wrapper(args: Args) -> Result<()> {
   let ctrl_c = tokio::signal::ctrl_c();
   futures::pin_mut!(ctrl_c);
 
-  match futures::future::select( main_fu, ctrl_c,).await {
+  match futures::future::select(main_fu, ctrl_c).await {
     Either::Left((a, _)) => a?,
     Either::Right((b, _)) => b?,
   }
