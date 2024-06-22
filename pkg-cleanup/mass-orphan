@@ -11,6 +11,14 @@ import yamlutils
 
 import const
 
+WHITELIST = {
+  'archlinuxcn-keyring',
+  'archlinuxcn-mirrorlist-git',
+  'devtools-archlinuxcn',
+  'lilac-git',
+  'nvchecker-git',
+}
+
 def remove_maintainer(pkg: str, maintainers: list[str]) -> None:
   lilac_yaml_path = Path(const.REPODIR) / pkg / 'lilac.yaml'
 
@@ -37,6 +45,7 @@ def process_partly_removed(partly) -> None:
 async def process_full_removed(removed):
   gh = GitHub(const.GITHUB_TOEKN)
   for user, packages in removed.items():
+    packages = set(packages) - WHITELIST
     if len(packages) < 6:
       subject = f'orphaning {", ".join(packages)} for {user}'
       body = ''
