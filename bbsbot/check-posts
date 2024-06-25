@@ -24,6 +24,7 @@ def main(args):
       time.sleep(600)
     except Exception:
       logging.exception('error')
+      time.sleep(60)
     except KeyboardInterrupt:
       print()
       break
