@@ -22,7 +22,7 @@ WHITELIST = {
 def remove_maintainer(pkg: str, maintainers: list[str]) -> None:
   lilac_yaml_path = Path(const.REPODIR) / pkg / 'lilac.yaml'
 
-  # use ruamel.yaml for yaml manipulation whith preserving comments
+  # use ruamel.yaml for yaml manipulation while preserving comments
   yaml = YAML()
   with open(lilac_yaml_path) as f:
     lilac_yaml = yaml.load(f.read())
@@ -43,7 +43,7 @@ def process_partly_removed(partly) -> None:
     remove_maintainer(pkg, maintainers)
 
 async def process_full_removed(removed):
-  gh = GitHub(const.GITHUB_TOEKN)
+  gh = GitHub(const.GITHUB_TOKEN)
   for user, packages in removed.items():
     packages = set(packages) - WHITELIST
     if len(packages) < 6:

@@ -228,4 +228,4 @@ if __name__ == '__main__':
   # convert_data()
   # annotate_build_results()
   print_data()
-  # post_comments(const.GITHUB_TOEKN, const.ISSUE_NR)
+  # post_comments(const.GITHUB_TOKEN, const.ISSUE_NR)

@@ -13,7 +13,7 @@ from agithub import GitHub
 PKG_RE = re.compile(r'^>?\s*[*-]\s+\[([ xX])\]\s+(\S+)')
 
 async def main() -> None:
-  gh = GitHub(const.GITHUB_TOEKN)
+  gh = GitHub(const.GITHUB_TOKEN)
   comments = [c async for c in gh.get_issue_comments(
     'archlinuxcn/repo', const.ISSUE_NR)
   ]
