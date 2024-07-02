@@ -30,6 +30,7 @@ async def main() -> None:
       who = lines[0][1:].rstrip(': ')
     else:
       who = comment.author
+    who = who.lower()
 
     all_unchecked = True
     has_package = False

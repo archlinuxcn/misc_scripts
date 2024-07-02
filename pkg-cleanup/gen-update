@@ -43,7 +43,7 @@ def main():
   for dir in lilacyaml.iter_pkgdir(REPODIR):
     y = lilacyaml.load_lilac_yaml(dir)
     old[dir.name] = {
-      x['github'] for x in y.get('maintainers', {})
+      x['github'].lower() for x in y.get('maintainers', {})
     }
 
   new = deepcopy(old)
