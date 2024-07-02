@@ -7,7 +7,6 @@ use matrix_sdk::{
   matrix_auth::{MatrixSession, MatrixSessionTokens},
   SessionMeta,
 };
-use matrix_sdk_sqlite::SqliteStateStore;
 use tracing::info;
 use secrecy::ExposeSecret;
 
@@ -55,11 +54,8 @@ pub async fn interactive_login<P: AsRef<Path>>(
     }
   };
 
-  let store = SqliteStateStore::open("states", None).await?;
-  let store_config = matrix_sdk::config::StoreConfig::new()
-    .state_store(store);
   let client = Client::builder()
-    .store_config(store_config)
+    .sqlite_store("states", None)
     .server_name(uid.server_name())
     .build().await?;
 
@@ -100,11 +96,8 @@ pub async fn get_client<P: AsRef<Path>>(logininfo: P) -> Result<Client> {
     },
   };
 
-  let store = SqliteStateStore::open("states", None).await?;
-  let store_config = matrix_sdk::config::StoreConfig::new()
-    .state_store(store);
   let client = Client::builder()
-    .store_config(store_config)
+    .sqlite_store("states", None)
     .homeserver_url(info.homeserver)
     .build()
     .await?;
