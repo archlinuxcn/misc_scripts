@@ -97,7 +97,7 @@ def process_orphaned_packages(
   gh: GitHub, repo: str, now: datetime.datetime,
 ) -> None:
   issues = [issue for issue in filter_issue(gh.get_repo_issues(repo, labels='orphaning'))
-            if now - issue.updated_at > ORPHANING_WAITING_TIME
+            if now - issue.created_at > ORPHANING_WAITING_TIME
             and 'seen-by-lilac' not in issue.labels]
 
   for issue in issues:
