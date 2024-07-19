@@ -13,9 +13,18 @@ AsyncHTTPClient.configure("tornado.curl_httpclient.CurlAsyncHTTPClient")
 
 class VerifyHandler(tornado.web.RequestHandler):
   async def post(self):
-    token = self.request.body.decode()
-    httpclient = AsyncHTTPClient()
     config = self.settings['config']
+    token = self.request.body.decode()
+    if not token:
+      ip = self.request.remote_ip
+      f = fernet.Fernet(config['fernet_key'])
+      value = f.encrypt(ip.encode())
+      self.set_cookie('__v', value, expires_days=365, httponly=True)
+      r = 'ok'
+      self.finish({'status': r})
+      return
+
+    httpclient = AsyncHTTPClient()
     recaptcha_req = [
       ("secret", config['recaptcha_key']),
       ("response", token),
@@ -30,7 +39,7 @@ class VerifyHandler(tornado.web.RequestHandler):
       ip = self.request.remote_ip
       f = fernet.Fernet(config['fernet_key'])
       value = f.encrypt(ip.encode())
-      self.set_cookie('__v', value, expires_days=7, httponly=True)
+      self.set_cookie('__v', value, expires_days=365, httponly=True)
       r = 'ok'
     else:
       r = 'fail'
