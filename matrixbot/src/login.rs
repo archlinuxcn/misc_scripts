@@ -54,10 +54,7 @@ pub async fn interactive_login<P: AsRef<Path>>(
     }
   };
 
-  let client = Client::builder()
-    .sqlite_store("states", None)
-    .server_name(uid.server_name())
-    .build().await?;
+  let client = build_client(Some(uid.server_name()), None).await?;
 
   let password = if let Some(p) = ask_password(&uid)? {
     p
@@ -85,6 +82,9 @@ pub async fn get_client<P: AsRef<Path>>(logininfo: P) -> Result<Client> {
   let f = std::fs::File::open(logininfo)?;
   let f = std::io::BufReader::new(f);
   let info: LoginInfo = serde_json::from_reader(f)?;
+
+  let client = build_client(None, Some(&info.homeserver)).await?;
+
   let session = MatrixSession {
     meta: SessionMeta {
       user_id: info.user_id.try_into()?,
@@ -95,12 +95,29 @@ pub async fn get_client<P: AsRef<Path>>(logininfo: P) -> Result<Client> {
       refresh_token: None,
     },
   };
-
-  let client = Client::builder()
-    .sqlite_store("states", None)
-    .homeserver_url(info.homeserver)
-    .build()
-    .await?;
   client.restore_session(session).await?;
+
+  Ok(client)
+}
+
+async fn build_client(
+  server_name: Option<&ruma::ServerName>,
+  homeserver: Option<&url::Url>,
+) -> Result<Client> {
+  use matrix_sdk::encryption::{EncryptionSettings, BackupDownloadStrategy};
+  let mut builder = Client::builder()
+    .sqlite_store("states", None)
+    .with_encryption_settings(EncryptionSettings {
+        auto_enable_cross_signing: true,
+        auto_enable_backups: true,
+        backup_download_strategy: BackupDownloadStrategy::AfterDecryptionFailure,
+    });
+  if let Some(homeserver) = homeserver {
+    builder = builder.homeserver_url(homeserver);
+  } else if let Some(server_name) = server_name {
+    builder = builder.server_name(server_name);
+  }
+  let client = builder.build().await?;
+
   Ok(client)
 }
