@@ -12,14 +12,13 @@ REPODIR = Path('/data/archgitrepo-webhook/archlinuxcn').expanduser()
 
 def gen_log_comment(pkgs: set[str]) -> str:
   ss = ['''\
-| pkgbase | build history | last build log | files |
-| --- | --- | --- | --- |''']
+| pkgbase | build history | last build log |
+| --- | --- | --- |''']
   t = int(time.time())
   for pkg in pkgs:
     ss.append(f'''\
-| {pkg} \
+| [{pkg}](https://github.com/archlinuxcn/repo/tree/master/archlinuxcn/{pkg}) \
 | [build history](https://build.archlinuxcn.org/~imlonghao/#{pkg}) \
 | [last build log](https://build.archlinuxcn.org/imlonghao-api/pkg/{pkg}/log/{t}) \
-| [{pkg}](https://github.com/archlinuxcn/repo/tree/master/archlinuxcn/{pkg}) \
 |''')
   return '\n'.join(ss)
