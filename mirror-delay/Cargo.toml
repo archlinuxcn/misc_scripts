@@ -13,7 +13,7 @@ httpdate = "*"
 psl = "*"
 rand = "*"
 rand_distr = "*"
-reqwest = { version = "0.12.2", features = ["json", "native-tls-alpn", "http2"], default-features = false }
+reqwest = { version = "*", features = ["json", "native-tls-alpn", "http2"], default-features = false }
 serde = { version = "*", features = ["derive"] }
 serde_json = "*"
 sqlx = { version = "*", default-features = false, features = ["postgres", "runtime-tokio"] }

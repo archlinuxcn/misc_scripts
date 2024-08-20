@@ -9,7 +9,7 @@ use super::util::name_from_url;
 struct Mirror {
   url: url::Url,
   lastupdate: u64,
-  diff: u32,
+  diff: i32,
 }
 
 pub async fn do_work(pool: &postgres::PgPool) -> eyre::Result<()> {
