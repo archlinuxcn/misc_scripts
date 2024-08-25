@@ -40,7 +40,7 @@ async fn send_stats(
       ")
       .bind(t)
       .bind(name)
-      .bind(delay as i32)
+      .bind(delay)
       .execute(&mut *tx)
       .await?;
   }
