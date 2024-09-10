@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<meta charset="utf-8" />
+<title>archlinuxcn.org 社区邮箱更改密码</title>
+<style type="text/css">
+<!--
+input:invalid {{ border: red 1px solid; outline: none; }}
+-->
+</style>
+<body>
+  <p>{username}, 你好！</p>
+  <form id="form" method="POST">
+    <div>邮件地址：<input name="username" type="text" value="{mailaddr}" readonly/></div>
+    <div>新的密码：<input name="password" id="password" type="password" required maxlength="72"/></div>
+    <div>确认密码：<input id="password2" type="password" required/></div>
+    <div><input type="submit" value="提交"/></div>
+  </form>
+  <p>密码最长为72字节。邮件地址若有异议，请与管理员联系。</p>
+
+<script type="text/javascript">
+<!--
+const form = document.getElementById('form')
+const password = document.getElementById('password')
+const password2 = document.getElementById('password2')
+form.addEventListener('submit', function(e) {{
+  if(password.value != password2.value) {{
+    password2.select()
+    e.preventDefault()
+  }}
+}})
+//-->
+</script>
+</body>
+</html>
+<!-- vim: set fdm=marker: -->

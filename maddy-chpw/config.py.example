@@ -1,0 +1,7 @@
+# fernet.Fernet.generate_key()
+FERNET_KEY = b'7FlZwGcQhhtGCfv7A-px98RtJZ-BTnnyXBF5hi4hVwg='
+DB_URL = 'postgresql:///'
+
+CLIENT_ID = 'aaaaaaaaaaaaaaaaaaaa'
+CLIENT_SECRET = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+TARGET_ORG = 'ggggggggggg'
