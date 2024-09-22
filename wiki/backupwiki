@@ -5,17 +5,19 @@ cd /
 tdir=$(mktemp -d)
 sudo -u http pg_dump -n archcnwiki -O -x http '--exclude-table-data=*.l10n_cache' > $tdir/db.sql
 sudo -u http pg_dump -n archcnmaintwiki -O -x http '--exclude-table-data=*.l10n_cache' > $tdir/db_maint.sql
+sudo -u maddy pg_dump -O -x maddy > $tdir/maddy.sql
 
 cd $tdir
 ln -s /var/lib/mediawiki images
 ln -s /var/lib/mediawiki_maint images_maint
 ln -s /etc/webapps/mediawiki conf
-cp /etc/nginx/nginx.conf nginx.conf
+ln -s /etc/nginx/nginx.conf nginx
+ln -s /etc/maddy maddy
 
 setopt extendedglob nullglob
 {
   print -l *.sql conf/*~*~ nginx.conf
-  print -l images/*.png images/*/*/*(.) images_maint/logo.png images_maint/*/*/*(.)
+  print -l images/*.png images/*/*/*(.) images_maint/logo.png images_maint/*/*/*(.) nginx/* maddy/*
 } | tar c -T- | zstd -c --ultra -20 - > ~/wiki-backups/wikidb-"$(date +"%Y-%m-%d.%H:%M:%S")".tar.zst
 
 cd /
