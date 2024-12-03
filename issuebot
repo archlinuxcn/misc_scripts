@@ -42,7 +42,7 @@ def git_push() -> None:
       subprocess.check_output(['git', 'push'], cwd=REPO)
       break
     except subprocess.CalledProcessError as e:
-      if 'non-fast-forward' in e.output or 'fetch first' in e.output:
+      if b'non-fast-forward' in e.output or b'fetch first' in e.output:
         subprocess.check_call(["git", "pull", "--rebase"])
       else:
         sys.stdout.write(e.output)
