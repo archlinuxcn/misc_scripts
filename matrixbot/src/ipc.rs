@@ -93,7 +93,7 @@ async fn search_message_for_user(
     room.messages(mopts).await?.chunk
   };
   msgs.retain(|ev|
-    if let Ok(Some(t)) = ev.event.get_field::<&str>("type") {
+    if let Ok(Some(t)) = ev.kind.raw().get_field::<&str>("type") {
       t == "m.room.message"
     } else {
       false
@@ -111,12 +111,12 @@ async fn delete_spam_messages_real(
 
   let reason = Some("spam");
   for msg in msgs {
-    let msg = msg.event.deserialize()?;
+    let msg = msg.kind.into_raw().deserialize()?;
     event!(Level::DEBUG, ?msg, "Message");
     if msg.sender() != target_user {
       continue;
     }
-    if let ruma::events::AnyTimelineEvent::MessageLike(msg) = msg {
+    if let ruma::events::AnySyncTimelineEvent::MessageLike(msg) = msg {
       event!(Level::WARN, ?msg, "Removing message");
       room.redact(msg.event_id(), reason, None).await?;
     }

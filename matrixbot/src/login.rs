@@ -21,7 +21,7 @@ struct LoginInfo {
   access_token: String,
 }
 
-fn ask_password(account: &ruma::UserId) -> Result<Option<secrecy::Secret<String>>> {
+fn ask_password(account: &ruma::UserId) -> Result<Option<secrecy::SecretString>> {
   if let Some(mut input) = pinentry::PassphraseInput::with_default_binary() {
     Ok(Some(input
       .with_title("Input Password")
@@ -59,7 +59,7 @@ pub async fn interactive_login<P: AsRef<Path>>(
   let password = if let Some(p) = ask_password(&uid)? {
     p
   } else {
-    secrecy::SecretString::new(rl.readline("Password: ")?)
+    secrecy::SecretString::new(rl.readline("Password: ")?.into())
   };
   client.matrix_auth().login_username(uid, password.expose_secret()).send().await?;
 

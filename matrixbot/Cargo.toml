@@ -24,7 +24,7 @@ tracing = "*"
 tracing-subscriber = { version = "*", default-features = false, features = ["env-filter", "fmt", "ansi", "chrono"] }
 rustyline = { version = "*", default-features = false }
 pinentry = "*"
-secrecy = "0.8" # be consistent with pinentry
+secrecy = "0.10" # be consistent with pinentry
 
 [profile.dev.package."*"]
 opt-level = 2
