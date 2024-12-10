@@ -8,13 +8,9 @@ edition = "2021"
 eyre = "*"
 expanduser = "*"
 # since 1.4.0 it uses thiserror instead of failure
-pwd = "1.4"
+pwd = "*"
 nix = { version = "*", features = ["fs", "user"] }
-
-[dependencies.structopt]
-version = "*"
-default-features = false
-features = []
+clap = { version = "*", default-features = false, features = ["std", "derive", "help", "usage", "error-context"] }
 
 [profile.release]
 lto = true

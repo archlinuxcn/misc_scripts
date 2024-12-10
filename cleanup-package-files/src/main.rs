@@ -6,7 +6,7 @@ use std::fs::File;
 
 use expanduser::expanduser;
 use eyre::{Result, ensure, eyre};
-use structopt::StructOpt;
+use clap::Parser;
 use nix::fcntl::Flock;
 
 const LILAC_LOCK: &str = "~lilydjwg/.lilac/.lock";
@@ -35,17 +35,16 @@ fn git_ls_files() -> Result<Vec<OsString>> {
   )
 }
 
-#[derive(StructOpt, Debug)]
-#[structopt(name = "basic")]
-struct Opt {
+#[derive(Parser, Debug)]
+struct Cli {
   /// remove files for real; or only print what will be removed
-  #[structopt(long="real")]
+  #[arg(long="real")]
   real: bool,
   pkgname: String,
 }
 
 fn main() -> Result<()> {
-  let opt = Opt::from_args();
+  let cli = Cli::parse();
 
   let pwd = pwd::Passwd::from_name(USER)
     .map_err(|e| eyre!("cannot get passwd entry for user {}: {:?}", USER, e))?
@@ -53,11 +52,11 @@ fn main() -> Result<()> {
   nix::unistd::setuid(nix::unistd::Uid::from_raw(pwd.uid))?;
 
   let _lock;
-  if opt.real {
+  if cli.real {
     _lock = flock(expanduser(LILAC_LOCK)?)?;
   }
   let mut path = expanduser(LILAC_REPO)?;
-  path.push(&opt.pkgname);
+  path.push(&cli.pkgname);
 
   std::env::set_current_dir(&path)?;
   let tracked_files = git_ls_files()?;
@@ -68,7 +67,7 @@ fn main() -> Result<()> {
     if tracked_files.contains(&file_name) {
       continue;
     }
-    if opt.real {
+    if cli.real {
       println!("rm -rf {}", entry.path().display());
       Command::new("rm").arg("-rf").arg(&file_name).spawn()?;
     } else {
