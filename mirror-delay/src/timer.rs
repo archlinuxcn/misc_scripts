@@ -26,7 +26,7 @@ impl Iterator for Timer {
 
         // figure out how many nanoseconds should come between the previous and
         // the next sample using an exponential distribution to avoid aliasing
-        let nanos = 1_000_000_000.0 * self.exp.sample(&mut rand::thread_rng());
+        let nanos = 1_000_000_000.0 * self.exp.sample(&mut rand::rng());
 
         // since we want to account for the amount of time the sampling takes
         // we keep track of when we should sleep to (rather than just sleeping
