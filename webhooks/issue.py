@@ -6,7 +6,10 @@ import logging
 from typing import Dict, Any, List, Set, Tuple, Optional
 import json
 
-from agithub import Issue, GitHub, Comment, GitHubError, IssueStateReason
+from agithub import (
+  Issue, GitHub, Comment, GitHubError, IssueStateReason,
+  GitHubLogin,
+)
 
 from . import config
 from . import lilac
@@ -105,12 +108,12 @@ async def find_affecting_deps(
 
 async def process_orphaning(
   author: str, edited: bool,
-  packages: Set[str], assignees: Set[str],
+  packages: Set[str], assignees: Set[GitHubLogin],
   maintainers: List[Maintainer],
 ) -> str:
   if author != config.MY_GITHUB:
     try:
-      assignees.remove(author)
+      assignees.remove(GitHubLogin(author))
     except KeyError:
       pass
 
@@ -131,7 +134,7 @@ async def process_orphaning(
       comment_parts.append(c)
     comment += '\n'.join(comment_parts) + '\n\n'
     assignees.update(
-      m for x in affected_maints.values() for m in x
+      GitHubLogin(m) for x in affected_maints.values() for m in x
     )
 
   if not edited and author not in maintainers and author != config.ADMIN_GH:
@@ -195,10 +198,10 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
     labels = ['out-of-date']
   elif issuetype == IssueType.Orphaning:
     labels = ['orphaning']
-    assignees.add(config.MY_GITHUB)
+    assignees.add(GitHubLogin(config.MY_GITHUB))
   elif issuetype == IssueType.Official:
     labels = ['in-official-repos']
-    assignees.add(config.MY_GITHUB)
+    assignees.add(GitHubLogin(config.MY_GITHUB))
   else:
     labels = []
 
@@ -216,7 +219,7 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
         if not maintainers:
           unmaintained.append(pkg)
 
-        assignees.update(x for x in maintainers)
+        assignees.update(GitHubLogin(x) for x in maintainers)
 
       if issuetype == IssueType.Orphaning:
         comment = await process_orphaning(
@@ -245,7 +248,7 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
     await issue.add_labels(labels)
   if assignees:
     r = await issue.assign(list(assignees))
-    assigned = {x['login'] for x in r['assignees']}
+    assigned = {GitHubLogin(x['login']) for x in r['assignees']}
     failed = assignees - assigned
     if failed:
       if comment:
