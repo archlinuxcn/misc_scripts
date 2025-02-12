@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 
 import os
 from collections import defaultdict
@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Tuple
 
 import archpkg
+import mailutils
 
 repo_path: Path = Path('/data/repo')
 gitrepo_path: Path = Path('~/archgitrepo').expanduser()
@@ -148,10 +149,17 @@ def main() -> None:
     out = e.output
     error = True
   for line in out.decode('utf-8', errors='backslashreplace').splitlines():
-    if 'Already up-to-date.' in line:
+    if 'Already up to date.' in line:
       continue
     print(line)
   if error:
+    mail = mailutils.assemble_mail(
+      'repocleaner error!',
+      '依云 <lilydjwg@gmail.com>',
+      'repocleaner <root@build.archlinuxcn.org>',
+      text = out.decode('utf-8', errors='backslashreplace'),
+    )
+    mailutils.sendmail(mail)
     sys.exit(1)
 
   all_packages = get_all_pkgnames()
