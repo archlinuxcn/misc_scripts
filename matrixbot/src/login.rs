@@ -4,7 +4,7 @@ use std::io::Write;
 use matrix_sdk::ruma;
 use matrix_sdk::{
   Client,
-  matrix_auth::{MatrixSession, MatrixSessionTokens},
+  authentication::matrix::{MatrixSession, MatrixSessionTokens},
   SessionMeta,
 };
 use tracing::info;
