@@ -655,9 +655,9 @@ dependencies = [
 
 [[package]]
 name = "deranged"
-version = "0.4.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28cfac68e08048ae1883171632c2aef3ebc555621ae56fbccce1cbf22dd7f058"
+checksum = "9c9e6a11ca8224451684bc0d7d5a7adbf8f2fd6887261a1cfc3c0432f9d4068e"
 dependencies = [
  "powerfmt",
 ]
@@ -2421,9 +2421,9 @@ dependencies = [
 
 [[package]]
 name = "redox_syscall"
-version = "0.5.10"
+version = "0.5.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b8c0c260b63a8219631167be35e6a988e9554dbd323f8bd08439c8ed1302bd1"
+checksum = "d2f103c6d277498fbceb16e84d317e2a400f160f46904d5f5410848c829511a3"
 dependencies = [
  "bitflags",
 ]
@@ -2555,9 +2555,9 @@ dependencies = [
 
 [[package]]
 name = "ruma"
-version = "0.12.1"
+version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d6fea33e3d17b9e009fefb3f175ca7fd40b1e7d1e72444478fd1b28611eb50a"
+checksum = "c64fdaae631940eda62844a8a3026aba2ba84c22588c888ebec44861ba4d0c18"
 dependencies = [
  "assign",
  "js_int",
@@ -2571,9 +2571,9 @@ dependencies = [
 
 [[package]]
 name = "ruma-client-api"
-version = "0.20.1"
+version = "0.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23989b539eceeaad01ba089ad307788f90a29bac2e5f730ff0a523eeae3fa1d7"
+checksum = "b9a89ac03a0f4451f946ed9aed6fdd16ef5a78a3a2849e87af4b2474a176b2fb"
 dependencies = [
  "as_variant",
  "assign",
@@ -2595,9 +2595,9 @@ dependencies = [
 
 [[package]]
 name = "ruma-common"
-version = "0.15.1"
+version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1058c04b8dd62f4fba71c9f65112fb79bc332438d11aefe1e8edf67b7fb58a98"
+checksum = "6b75da013b362664c3e161662902e5da3f77e990525681b59c6035bac27e87b4"
 dependencies = [
  "as_variant",
  "base64",
@@ -2628,9 +2628,9 @@ dependencies = [
 
 [[package]]
 name = "ruma-events"
-version = "0.30.1"
+version = "0.30.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff1b8e15942e35ba56004429bc0845f481281f903e86957973a08ec08f8d06f0"
+checksum = "6c100eb6c7691ef010f18d9af315f486fc4da621b7203c431e88352148e84551"
 dependencies = [
  "as_variant",
  "indexmap",
@@ -2652,9 +2652,9 @@ dependencies = [
 
 [[package]]
 name = "ruma-federation-api"
-version = "0.11.0"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d70c3d37a8e42992aeaa5786cb406ad302bcd05c0e7e3073d5316b4574340dd"
+checksum = "373bc5a30b84574dfce3e75c33d79d6ba9843bf0eee1bf351f904eef9bea001a"
 dependencies = [
  "http",
  "js_int",
@@ -3198,9 +3198,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.44.1"
+version = "1.44.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f382da615b842244d4b8738c82ed1275e6c5dd90c459a30941cd07080b06c91a"
+checksum = "e6b88822cbe49de4185e3a4cbf8321dd487cf5fe0c5c65695fef6346371e9c48"
 dependencies = [
  "backtrace",
  "bytes",
@@ -3963,9 +3963,9 @@ checksum = "271414315aff87387382ec3d271b52d7ae78726f5d44ac98b4f4030c91880486"
 
 [[package]]
 name = "winnow"
-version = "0.7.4"
+version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e97b544156e9bebe1a0ffbc03484fc1ffe3100cbce3ffb17eac35f7cdd7ab36"
+checksum = "63d3fcd9bba44b03821e7d699eeee959f3126dcc4aa8e4ae18ec617c2a5cea10"
 dependencies = [
  "memchr",
 ]
