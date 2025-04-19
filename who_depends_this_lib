@@ -79,13 +79,7 @@ def tarfile_open_zstd_compat(name: str) -> Generator[tarfile.TarFile, None, None
     with tarfile.open(name) as tar:
       yield tar
 
-def check_package(pkg: Path, lib_re: re.Pattern, dep_pkgname: Optional[str]) -> Optional[Tuple[str, str]]:
-  if dep_pkgname is not None:
-    if check_package_buildinfo(pkg, dep_pkgname):
-      return None
-  return check_package_so(pkg, lib_re)
-
-def check_package_buildinfo(pkg: Path, dep_pkgname: str) -> bool:
+def buildinfo_matches(pkg: Path, dep_pkgname: str, dep_pkgver: Optional[str]) -> Optional[bool]:
   # If a package links to a library that matches `lib_re` but does not have
   # `dep_pkgname` installed during the build, that package is already broken
   # For example, packages with files linked to libprotobuf.so should have
@@ -106,20 +100,18 @@ def check_package_buildinfo(pkg: Path, dep_pkgname: str) -> bool:
               logger.warning('Old .BUILDINFO format - entry %s found in %s; checking anyway', line, pkg)
               has_dep = True
               break
-            pkgname, _, _, _ = parts
-            if pkgname == dep_pkgname:
+            pkgname, pkgver, _, _ = parts
+            if pkgname == dep_pkgname and (dep_pkgver is None or dep_pkgver == pkgver):
               has_dep = True
               break
         buildinfo_found = True
         break
   if not buildinfo_found:
     logger.warning('Cannot find .BUILDINFO in first %d entries of %s; checking anyway', threshold, pkg)
-    has_dep = True
+    return None
   if not has_dep:
     logger.info('%s does not depend on %s, skipping' % (pkg, dep_pkgname))
-    return True
-
-  return False
+  return has_dep
 
 def check_package_so(pkg: Path, lib_re: re.Pattern) -> Optional[Tuple[str, str]]:
   with extract_package(pkg) as d:
@@ -133,7 +125,7 @@ def check_package_so(pkg: Path, lib_re: re.Pattern) -> Optional[Tuple[str, str]]
 
   return None
 
-def main(db: Path, lib_re: re.Pattern, dep_pkgname: Optional[str]) -> None:
+def main(db: Path, checker: Checker) -> None:
   ret = []
   dir = db.parent
 
@@ -177,12 +169,46 @@ def main(db: Path, lib_re: re.Pattern, dep_pkgname: Optional[str]) -> None:
             break
 
       if filename and files_match:
-        r = check_package(dir / filename, lib_re, dep_pkgname)
+        r = checker.check(dir / filename)
         if r is not None:
-          ret.append((name, *r))
+          ret.append((name, r))
 
-  for name, file, lib in ret:
-    print('%s: %s (%s)' % (name, file, lib))
+  for name, r in ret:
+    checker.output(name, r)
+
+class Checker[R]:
+  def check(self, pkg: Path) -> Optional[R]:
+    raise NotImplementedError
+
+  def output(self, name: str, r: R) -> None:
+    raise NotImplementedError
+
+class LibChecker(Checker):
+  def __init__(self, libname: str, dep_pkgname: Optional[str]) -> None:
+    self.lib_re = re.compile(libname)
+    self.dep_pkgname = dep_pkgname
+
+  def check(self, pkg: Path) -> Optional[tuple[str, str]]:
+    if self.dep_pkgname is not None:
+      if buildinfo_matches(pkg, self.dep_pkgname, None) is False:
+        return None
+    return check_package_so(pkg, self.lib_re)
+
+  def output(self, name: str, r: tuple[str, str]) -> None:
+    print('%s: %s (%s)' % (name, *r))
+
+class PkgverChecker(Checker):
+  def __init__(self, dep_pkgname: str, dep_pkgver: str) -> None:
+    self.dep_pkgname = dep_pkgname
+    self.dep_pkgver = dep_pkgver
+
+  def check(self, pkg: Path) -> Optional[bool]:
+    if buildinfo_matches(pkg, self.dep_pkgname, self.dep_pkgver) is True:
+      return True
+    return None
+
+  def output(self, name: str, _r: bool) -> None:
+    print(name)
 
 if __name__ == '__main__':
   from nicelogger import enable_pretty_logging
@@ -194,10 +220,20 @@ if __name__ == '__main__':
     description='find out what Arch packages need a particular library. Depends on cmdutils from winterpy.')
   parser.add_argument('pkgdb',
                       help='the package files database, eg. /data/repo/x86_64/archlinuxcn.files.tar.gz')
-  parser.add_argument('libname',
-                      help='the library filename regex to match')
-  parser.add_argument('--dep-pkgname',
+  parser.add_argument('--dep-pkgname', metavar='PKGNAME',
                       help='the package name that affected packages should depend on')
+  parser.add_argument('--libname',
+                      help='the library filename regex to match')
+  parser.add_argument('--dep-pkgver', metavar='PKGVER',
+                      help='the package version that affected packages should depend on')
   args = parser.parse_args()
 
-  main(Path(args.pkgdb), re.compile(args.libname), args.dep_pkgname)
+  checker: Checker
+  if args.libname:
+    checker = LibChecker(args.libname, args.dep_pkgname)
+  elif args.dep_pkgver:
+    checker = PkgverChecker(args.dep_pkgname, args.dep_pkgver)
+  else:
+    raise ValueError('--libname or --dep-pkgver is needed')
+
+  main(Path(args.pkgdb), checker)
