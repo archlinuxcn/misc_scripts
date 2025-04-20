@@ -2,21 +2,17 @@
 
 from __future__ import annotations
 
-import itertools
 import os
-import tempfile
 import subprocess
-import contextlib
 import logging
 import tarfile
 import re
-import shutil
-from functools import partial
 from pathlib import Path
-from typing import Optional, Tuple, Iterator, Generator
+from typing import Optional, Tuple, Iterator
 
-import zstandard
 from cmdutils import so_depends
+
+from pkgchecker import get_buildinfo, extract_package, iter_installed
 
 logger = logging.getLogger(__name__)
 
@@ -50,65 +46,25 @@ def check_dependency(dir: str, lib_re: re.Pattern) -> Optional[Tuple[str, str]]:
 
   return None
 
-def handle_rmtree_error(tmpdir, func, path, excinfo):
-  if isinstance(excinfo[1], PermissionError) and \
-     os.path.commonpath((path, tmpdir)) == tmpdir:
-    os.chmod(os.path.dirname(path), 0o700)
-    if os.path.isdir(path):
-      shutil.rmtree(path, onerror=partial(handle_rmtree_error, path))
-    else:
-      os.unlink(path)
-
-@contextlib.contextmanager
-def extract_package(pkg: os.PathLike) -> Generator[str, None, None]:
-  logger.info('extracting %s...', pkg)
-  d = tempfile.mkdtemp(prefix='depcheck-')
-  try:
-    subprocess.check_call(['bsdtar', 'xf', pkg, '--no-fflags', '-C', d])
-    yield d
-  finally:
-    shutil.rmtree(d, onerror=partial(handle_rmtree_error, d))
-
-@contextlib.contextmanager
-def tarfile_open_zstd_compat(name: str) -> Generator[tarfile.TarFile, None, None]:
-  if name.endswith('.zst'):
-    dctx = zstandard.ZstdDecompressor()
-    with open(name, 'rb') as f, dctx.stream_reader(f) as reader, tarfile.open(mode='r|', fileobj=reader) as tar:
-      yield tar
-  else:
-    with tarfile.open(name) as tar:
-      yield tar
-
 def buildinfo_matches(pkg: Path, dep_pkgname: str, dep_pkgver: Optional[str]) -> Optional[bool]:
   # If a package links to a library that matches `lib_re` but does not have
   # `dep_pkgname` installed during the build, that package is already broken
   # For example, packages with files linked to libprotobuf.so should have
   # protobuf installed during the build.
-  has_dep = False
-  buildinfo_found = False
-  with tarfile_open_zstd_compat(str(pkg)) as tar:
-    threshold = 10
-    for tarinfo in itertools.islice(tar, threshold):
-      if tarinfo.name == '.BUILDINFO':
-        f = tar.extractfile(tarinfo)
-        assert f
-        for line in f.read().decode().split('\n'):
-          if line.startswith('installed = '):
-            # pkgver, pkgrel and arch are not used
-            parts = line[len('installed = '):].rsplit('-', maxsplit=3)
-            if len(parts) != 4:
-              logger.warning('Old .BUILDINFO format - entry %s found in %s; checking anyway', line, pkg)
-              has_dep = True
-              break
-            pkgname, pkgver, _, _ = parts
-            if pkgname == dep_pkgname and (dep_pkgver is None or dep_pkgver == pkgver):
-              has_dep = True
-              break
-        buildinfo_found = True
-        break
-  if not buildinfo_found:
-    logger.warning('Cannot find .BUILDINFO in first %d entries of %s; checking anyway', threshold, pkg)
+  buildinfo = get_buildinfo(pkg)
+  if buildinfo is None:
     return None
+
+  has_dep = False
+  for parts in iter_installed(buildinfo):
+    if len(parts) != 4:
+      logger.warning('Old .BUILDINFO format - entry %s found in %s; checking anyway', '-'.join(parts), pkg)
+      has_dep = True
+      break
+    pkgname, pkgver, _, _ = parts
+    if pkgname == dep_pkgname and (dep_pkgver is None or dep_pkgver == pkgver):
+      has_dep = True
+      break
   if not has_dep:
     logger.info('%s does not depend on %s, skipping' % (pkg, dep_pkgname))
   return has_dep
