@@ -4,7 +4,8 @@ use std::io::Write;
 use matrix_sdk::ruma;
 use matrix_sdk::{
   Client,
-  authentication::matrix::{MatrixSession, MatrixSessionTokens},
+  authentication::matrix::MatrixSession,
+  authentication::SessionTokens,
   SessionMeta,
 };
 use tracing::info;
@@ -90,7 +91,7 @@ pub async fn get_client<P: AsRef<Path>>(logininfo: P) -> Result<Client> {
       user_id: info.user_id.try_into()?,
       device_id: info.device_id.into(),
     },
-    tokens: MatrixSessionTokens {
+    tokens: SessionTokens {
       access_token: info.access_token,
       refresh_token: None,
     },

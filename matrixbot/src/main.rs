@@ -65,7 +65,7 @@ async fn async_main(args: Args) -> Result<()> {
     login::get_client(&args.logininfo).await?
   };
 
-  let sync_token = client.store().get_kv_data(StateStoreDataKey::SyncToken).await?;
+  let sync_token = client.state_store().get_kv_data(StateStoreDataKey::SyncToken).await?;
   let mut sync_settings = SyncSettings::new()
     .timeout(Duration::from_secs(600))
     .set_presence(ruma::presence::PresenceState::Unavailable);
