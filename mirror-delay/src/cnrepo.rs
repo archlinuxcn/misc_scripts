@@ -13,9 +13,9 @@ struct Mirror {
 }
 
 pub async fn do_work(pool: &postgres::PgPool) -> eyre::Result<()> {
-  let res = reqwest::get("https://build.archlinuxcn.org/~imlonghao/status/status.json").await?;
-  let t = res.headers().get(reqwest::header::LAST_MODIFIED)
-    .and_then(|x| httpdate::parse_http_date(x.to_str().ok()?).ok())
+  let res = nyquest::r#async::get("https://build.archlinuxcn.org/~imlonghao/status/status.json").await?;
+  let t = res.get_header("last-modified").ok()
+    .and_then(|x| httpdate::parse_http_date(&x[0]).ok())
     .unwrap_or_else(SystemTime::now);
   let mirrors: Vec<Mirror> = res.json().await?;
   send_stats(t.duration_since(UNIX_EPOCH)?.as_secs() as i64, mirrors, pool).await?;
