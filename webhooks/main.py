@@ -62,6 +62,13 @@ class IssueHandler:
       asyncio.ensure_future(on_push())
       return
 
+    if event_type == 'pull_request':
+      if data['action'] != 'opened':
+        return
+      asyncio.ensure_future(issue.process_pr(
+        self.gh, data['pull_request']))
+      return
+
     if event_type != 'issues':
       return
 

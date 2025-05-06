@@ -8,7 +8,7 @@ import json
 
 from agithub import (
   Issue, GitHub, Comment, GitHubError, IssueStateReason,
-  GitHubLogin,
+  GitHubLogin, PullRequest,
 )
 
 from . import config
@@ -166,18 +166,7 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
   issuetype, packages = parse_issue_text(body)
   logger.info('issue type: %s, packages: %s', issuetype, packages)
 
-  existing_comment = None
-  idx = 0
-  try:
-    async for c in gh.get_issue_comments(config.REPO_NAME, issue.number):
-      idx += 1
-      if c.author == config.MY_GITHUB:
-        existing_comment = c
-        break
-      elif idx > 20: # check no further
-        break
-  except GitHubError:
-    pass # not found
+  existing_comment = await find_existing_comment(gh, issue.number)
 
   if issuetype is None or (not packages and issuetype in [
     IssueType.OutOfDate, IssueType.Orphaning, IssueType.Official]):
@@ -264,3 +253,66 @@ async def process_issue(gh: GitHub, issue_dict: Dict[str, Any],
       await issue.reopen()
       if existing_comment and 'cannot parse' in existing_comment.body:
         await existing_comment.delete()
+
+async def process_pr(gh: GitHub, pr_dict: Dict[str, Any]) -> None:
+  pr = PullRequest(pr_dict, gh)
+  logger.info('Received pr %s', pr)
+  if pr.number < 700 or 'no-lilac' in pr.labels:
+    return
+
+  files = (await pr.compare())['files']
+  files = [x['filename'] for x in files]
+  packages = []
+  for f in files:
+    parts = f.split('/', 2)
+    if len(parts) < 3:
+      continue
+    repo, pkgbase, _path = parts
+    # TODO: support other repos
+    if repo == 'archlinuxcn':
+      packages.append(pkgbase)
+
+  assignees: Set[GitHubLogin] = set()
+  if packages:
+    unmaintained = []
+    for pkg in packages:
+      try:
+        maintainers = await lilac.find_maintainers(pkg)
+      except FileNotFoundError:
+        logger.warning('package %s has no lilac.yaml', pkg)
+        continue
+
+      logger.info('package %s maintainers: %s', pkg, maintainers)
+      if not maintainers:
+        unmaintained.append(pkg)
+
+      assignees.update(GitHubLogin(x) for x in maintainers)
+
+  comment = ''
+  if assignees:
+    r = await pr.assign(list(assignees))
+    assigned = {GitHubLogin(x['login']) for x in r['assignees']}
+    failed = assignees - assigned
+    if failed:
+      if comment:
+        comment += '\n\n'
+      comment += 'Some maintainers (perhaps outside contributors) cannot be assigned: ' + ', '.join(f'@{x}' for x in failed)
+  if comment:
+    existing_comment = await find_existing_comment(gh, pr.number)
+    await edit_or_add_comment(pr, existing_comment, comment)
+
+async def find_existing_comment(gh: GitHub, number: int) -> Optional[Comment]:
+  existing_comment = None
+  idx = 0
+  try:
+    async for c in gh.get_issue_comments(config.REPO_NAME, number):
+      idx += 1
+      if c.author == config.MY_GITHUB:
+        existing_comment = c
+        break
+      elif idx > 20: # check no further
+        break
+  except GitHubError:
+    pass # not found
+
+  return existing_comment
