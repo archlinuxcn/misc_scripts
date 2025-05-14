@@ -17,7 +17,7 @@ import requests
 from myutils import restart_if_failed
 
 from lilac2 import lilacyaml
-from lilac2.packages import get_split_packages
+from lilac2.packages import get_package_names
 
 import const
 
@@ -98,7 +98,7 @@ def gather_data_real(cache: dict[Any, Any]) -> None:
     y = lilacyaml.load_lilac_yaml(pkgdir)
     name = pkgdir.name
     # Accumulate counts for split packages
-    packages = get_split_packages(pkgdir)
+    packages = get_package_names(pkgdir)
     logger.info('processing %s with packages %s...', name, packages)
     total_pkgstats_cn_count = 0
     total_pkgstats_count = 0
