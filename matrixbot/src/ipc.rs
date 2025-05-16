@@ -15,13 +15,14 @@ use matrix_sdk::ruma::{
   },
 };
 use matrix_sdk::deserialized_responses::TimelineEvent;
-use tokio::net::UnixDatagram;
+use tokio::net::{UnixListener, UnixStream};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tracing::{event, Level};
 
 use crate::util::Result;
 
 struct Ipc {
-  socket: UnixDatagram,
+  path: String,
   client: Client,
 }
 
@@ -36,9 +37,15 @@ enum Message {
     html_content: Option<String>,
     reply_to: Option<OwnedEventId>,
     replaces: Option<OwnedEventId>,
+    return_id: bool,
   },
   #[serde(rename="delete_user_messages")]
   DeleteUserMessages { target: OwnedRoomOrAliasId, user: OwnedUserId },
+}
+
+#[derive(serde::Serialize)]
+struct ReturnMessage {
+  id: OwnedEventId,
 }
 
 async fn resolve_to_room_id(client: &Client, target: OwnedRoomOrAliasId) -> Result<OwnedRoomId> {
@@ -51,15 +58,18 @@ async fn resolve_to_room_id(client: &Client, target: OwnedRoomOrAliasId) -> Resu
   Ok(room_id)
 }
 
-async fn handle_msg(ipc: &Ipc, msg: &[u8]) -> Result<()> {
+async fn handle_msg(client: &Client, msg: &[u8]) -> Result<Option<ReturnMessage>> {
   let msg_str = std::str::from_utf8(msg)?;
   event!(Level::DEBUG, msg = msg_str, "got message");
   let msg = serde_json::from_str(msg_str)?;
   match msg {
-    Message::SendMessage { target, content, html_content, reply_to, replaces } => {
+    Message::SendMessage {
+      target, content, html_content,
+      reply_to, replaces, return_id,
+    } => {
       event!(Level::INFO, msg = msg_str, "sending message");
-      let room_id = resolve_to_room_id(&ipc.client, target).await?;
-      if let Some(room) = ipc.client.get_room(&room_id) {
+      let room_id = resolve_to_room_id(client, target).await?;
+      if let Some(room) = client.get_room(&room_id) {
         let mut msg = match html_content {
           Some(html) => RoomMessageEventContent::text_html(content, html),
           None => RoomMessageEventContent::text_plain(content),
@@ -77,22 +87,27 @@ async fn handle_msg(ipc: &Ipc, msg: &[u8]) -> Result<()> {
             &replied_msg, ForwardThread::Yes, AddMentions::Yes,
           );
         }
-        room.send(msg).await?;
+        let res = room.send(msg).await?;
+        if return_id {
+          return Ok(Some(ReturnMessage {
+            id: res.event_id,
+          }))
+        }
       } else {
         event!(Level::ERROR, msg = msg_str, "room not found");
       }
     },
     Message::DeleteUserMessages { target, user } => {
       event!(Level::INFO, %target, %user, "deleting messages");
-      let room_id = resolve_to_room_id(&ipc.client, target).await?;
-      if let Some(room) = ipc.client.get_room(&room_id) {
+      let room_id = resolve_to_room_id(client, target).await?;
+      if let Some(room) = client.get_room(&room_id) {
         delete_spam_messages(room, user).await;
       } else {
         event!(Level::ERROR, msg = msg_str, "room not found");
       }
     }
   }
-  Ok(())
+  Ok(None)
 }
 
 async fn delete_spam_messages(
@@ -153,13 +168,35 @@ async fn delete_spam_messages_real(
   Ok(())
 }
 
-async fn ipc_task(ipc: Ipc) -> Result<()> {
-  let mut buf = vec![0; 4096];
+async fn ipc_task_one_connection(
+  client: Client, mut sock: UnixStream,
+) -> Result<()> {
+  let mut buf = vec![];
   loop {
-    let (size, _addr) = ipc.socket.recv_from(&mut buf).await?;
-    if let Err(e) = handle_msg(&ipc, &buf[..size]).await {
-      event!(Level::ERROR, error=?e, msg=?&buf[..size], "bad ipc message");
+    let size = sock.read_u32().await?;
+    buf.clear();
+    buf.resize(size as usize, 0);
+    sock.read_exact(&mut buf).await?;
+    match handle_msg(&client, &buf).await {
+      Ok(None) => { },
+      Ok(m) => {
+        let data = serde_json::to_vec(&m)?;
+        sock.write_u32(data.len() as u32).await?;
+        sock.write_all(&data).await?;
+      },
+      Err(e) => {
+        event!(Level::ERROR,
+          error=?e, msg=?&buf, "bad ipc message");
+      },
     }
+  }
+}
+
+async fn ipc_task(ipc: Ipc) -> Result<()> {
+  let socket = UnixListener::bind(&ipc.path)?;
+  loop {
+    let (socket, _) = socket.accept().await?;
+    tokio::spawn(ipc_task_one_connection(ipc.client.clone(), socket));
   }
 }
 
@@ -169,8 +206,7 @@ pub fn enable(client: Client, mut path: String) -> Result<()> {
   } else {
     let _ = std::fs::remove_file(&path);
   }
-  let socket = UnixDatagram::bind(&path)?;
-  let ipc = Ipc { socket, client };
+  let ipc = Ipc { path, client };
   tokio::spawn(ipc_task(ipc));
   Ok(())
 }

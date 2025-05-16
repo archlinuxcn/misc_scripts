@@ -5,6 +5,7 @@ import logging
 import socket
 import json
 import time
+import struct
 
 from fluxbbclient import FluxBB
 from nicelogger import enable_pretty_logging
@@ -43,7 +44,7 @@ def run_once(f, config):
 
   matrix_config = config['matrix']
   target = matrix_config['target_room']
-  s = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+  s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
   s.connect(matrix_config['socket_path'])
 
   for p in new_posts:
@@ -67,8 +68,10 @@ def run_once(f, config):
       'content': message,
       'html_content': html_message,
     }
-    m = json.dumps(msg, ensure_ascii=False)
-    s.send(m.encode())
+    m = json.dumps(msg, ensure_ascii=False).encode()
+    size = struct.pack('>I', len(m))
+    s.sendall(size)
+    s.sendall(m)
   s.close()
 
   if new_posts:
