@@ -37,6 +37,7 @@ enum Message {
     html_content: Option<String>,
     reply_to: Option<OwnedEventId>,
     replaces: Option<OwnedEventId>,
+    #[serde(default)]
     return_id: bool,
   },
   #[serde(rename="delete_user_messages")]
