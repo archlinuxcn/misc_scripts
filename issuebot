@@ -406,18 +406,24 @@ def find_orphaned_unmaintained_packages(
     if not ly.get('maintainers')
   }
 
-  depended_pkgs: Set[str] = set()
+  dep_to_depee = defaultdict(set)
   for name, ly in lilac_yamls.items():
-    if name in orphaned_pkgs:
-      continue
-    depended_pkgs.update(
-      d for d, _ in
-      ly.get('repo_depends', ())
-      if d in orphaned_pkgs
-    )
+    for d, _ in ly.get('repo_depends', ()):
+      dep_to_depee[d].add(name)
 
-  removing_pkgs = orphaned_pkgs - depended_pkgs
-  return removing_pkgs
+  changed = True
+  while changed and orphaned_pkgs:
+    changed = False
+    depended_pkgs = set()
+    for pkg in orphaned_pkgs:
+      depee = dep_to_depee[pkg]
+      if depee - orphaned_pkgs:
+        depended_pkgs.add(pkg)
+    if depended_pkgs:
+      orphaned_pkgs -= depended_pkgs
+      changed = True
+
+  return orphaned_pkgs
 
 def try_remove_orphaned(gh: GitHub, repo: str) -> None:
   removing_pkgs = find_orphaned_unmaintained_packages(REPO)
