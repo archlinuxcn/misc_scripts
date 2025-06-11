@@ -83,8 +83,6 @@ def main() -> None:
   duplicates = official & {x[1] for x in ours}
   logger.debug('duplicates: %r', duplicates)
 
-  # aiohttp is unhappy with async.run:
-  # Timeout context manager should be used inside a task
   open_packages = loop.run_until_complete(get_open_issue_packages(gh))
   logger.debug('open_packages: %r', open_packages)
 
