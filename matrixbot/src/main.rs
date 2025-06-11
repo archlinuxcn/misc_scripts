@@ -10,9 +10,10 @@ use matrix_sdk_base::store::{StateStoreDataKey, StateStoreDataValue};
 use clap::Parser;
 use tracing::info;
 
+use matrixutils::login;
+use matrixutils::verification;
+
 mod util;
-mod login;
-mod verification;
 mod ipc;
 
 use util::Result;
@@ -60,7 +61,7 @@ async fn async_main_wrapper(args: Args) -> Result<()> {
 
 async fn async_main(args: Args) -> Result<()> {
   let client = if args.login {
-    login::interactive_login(&args.logininfo).await?
+    login::new_login(&args.logininfo).await?
   } else {
     login::get_client(&args.logininfo).await?
   };

@@ -1,30 +1,25 @@
 [package]
 name = "matrixbot"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 matrix-sdk = { version = "*", default-features = false, features = ["eyre", "sqlite", "native-tls", "e2e-encryption"] }
-matrix-sdk-sqlite = "*"
 matrix-sdk-base = "*"
-# ruma = { version = "*", features = ["client-api"] }
 
 serde = "*"
 serde_json = "*"
 tokio = { version = "*", features = ["tokio-macros", "full"] }
-url = { version = "*", features = ["serde"] }
 futures = "*"
-futures-util = "*"
 
 clap = { version = "*", default-features = false, features = ["std", "derive", "help"] }
 eyre = "*"
 tracing = "*"
 tracing-subscriber = { version = "*", default-features = false, features = ["env-filter", "fmt", "ansi", "chrono"] }
-rustyline = { version = "*", default-features = false }
-pinentry = "*"
-secrecy = "0.10" # be consistent with pinentry
+
+matrixutils = { version = "*", path = "matrixutils" }
 
 [profile.dev.package."*"]
 opt-level = 2
