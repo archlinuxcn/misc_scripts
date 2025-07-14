@@ -1,0 +1,60 @@
+#!/usr/bin/python3
+
+import os
+import subprocess
+from pathlib import Path
+import sys
+
+import libmount
+
+SNAPSHOTS_DIR = Path('/.snapshots/-')
+
+BACKUP_CMD = [
+  'restic', 'backup', '-x', '--exclude-caches',
+  '--exclude=/root/.cache/',
+  '--exclude=/home/*/.cache/',
+  '--exclude=/var/cache/pacman/pkg/*',
+  '--exclude=/root/.debug/',
+  '--exclude=/var/tmp/*',
+  '--limit-upload=10240', '--limit-download=10240',
+  '/',
+]
+
+def find_latest_snapshot():
+  snaps = list(SNAPSHOTS_DIR.glob('*-auto'))
+  snaps.sort(key=lambda p: p.name)
+  return snaps[-1]
+
+def bind_mount(root, path):
+  ctx = libmount.Context(
+    source = path,
+    target = str(root / path.lstrip('/')),
+    mflags = libmount.MS_BIND,
+  )
+  ctx.mount()
+
+def make_rprivate():
+  import ctypes
+  libc = ctypes.CDLL('libc.so.6', use_errno=True)
+  mflags = libmount.MS_PRIVATE | libmount.MS_REC
+  ret = libc.mount(None, "/", None, mflags, None)
+  if ret != 0:
+    errno = ctypes.get_errno()
+    raise OSError(errno, 'unshare failed')
+
+def main():
+  os.unshare(os.CLONE_NEWNS)
+  make_rprivate()
+
+  snap = find_latest_snapshot()
+  libmount.Context(source='tmpfs', target=str(snap / 'tmp'), fstype='tmpfs').mount()
+  bind_mount(snap, '/dev')
+  bind_mount(snap, '/run')
+  bind_mount(snap, '/root/.cache')
+
+  os.chroot(snap)
+  cmd = BACKUP_CMD + sys.argv[1:]
+  subprocess.check_call(cmd)
+
+if __name__ == '__main__':
+  main()
