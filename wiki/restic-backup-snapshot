@@ -40,7 +40,7 @@ def make_rprivate():
   ret = libc.mount(None, "/", None, mflags, None)
   if ret != 0:
     errno = ctypes.get_errno()
-    raise OSError(errno, 'unshare failed')
+    raise OSError(errno, 'mount failed')
 
 def main():
   os.unshare(os.CLONE_NEWNS)
