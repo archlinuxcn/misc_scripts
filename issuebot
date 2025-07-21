@@ -168,7 +168,7 @@ lilac can't parse out the relevant package names, please handle manually.''')
       issue.close()
       # else we've closed the issue by a commit
 
-def remove_repo_depends(pkgdir: pathlib.Path, packages: List[str]) -> bool:
+def remove_repo_depends(pkgdir: pathlib.Path, packages: list[str]) -> bool:
   # use ruamel.yaml for yaml manipulation with preserving indents and comments
   lilac_yaml_path = pkgdir / 'lilac.yaml'
 
