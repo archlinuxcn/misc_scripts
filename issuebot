@@ -223,7 +223,8 @@ def remove_maintainers(pkgdir: pathlib.Path) -> None:
     yaml.default_flow_style = None
     yaml.indent(sequence=indent, offset=block_seq_indent)
     yaml.dump(lilac_yaml, stream=f)
-  subprocess.check_call(['git', 'add', pkgdir.name], cwd=REPO)
+  # we only updated lilac.yaml, so only add lilac.yaml
+  subprocess.check_call(['git', 'add', pkgdir.name + '/lilac.yaml'], cwd=pkgdir.parent)
 
 def process_in_official(
   gh: GitHub, repo: str, now: datetime.datetime,
