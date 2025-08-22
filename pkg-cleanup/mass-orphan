@@ -85,7 +85,7 @@ async def main() -> None:
   with open('/home/lilydjwg/tmpfs/update.yaml') as f:
     updates = yamlutils.load(f)
   process_partly_removed(updates['partly_removed'])
-  # await process_full_removed(updates['removed'])
+  await process_full_removed(updates['removed'])
 
 if __name__ == '__main__':
   asyncio.run(main())

@@ -227,5 +227,5 @@ if __name__ == '__main__':
   # gather_data()
   # convert_data()
   # annotate_build_results()
-  print_data()
+  # print_data()
   # post_comments(const.GITHUB_TOKEN, const.ISSUE_NR)

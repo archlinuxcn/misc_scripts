@@ -1,8 +1,10 @@
 package cleanup scripts
 ====
 
+* Remove old cache.pickle
 * Update `const.py`
 * Update and run `gen-cleanup-list` to get data
+  * Bind build's PostgreSQL socket
 * Create issue
 * Update and run `gen-cleanup-list` to post comments
 * Repeat as will
