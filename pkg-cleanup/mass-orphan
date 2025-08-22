@@ -46,6 +46,9 @@ async def process_full_removed(removed):
   gh = GitHub(const.GITHUB_TOKEN)
   for user, packages in removed.items():
     packages = set(packages) - WHITELIST
+    if not packages:
+      continue
+
     if len(packages) < 6:
       subject = f'orphaning {", ".join(packages)} for {user}'
       body = ''
