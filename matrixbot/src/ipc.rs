@@ -82,7 +82,7 @@ async fn handle_msg(client: &Client, msg: &[u8]) -> Result<Option<ReturnMessage>
         };
         if let Some(evt) = replaces {
           let meta = ReplacementMetadata::new(evt, None);
-          msg = msg.make_replacement(meta, replied_msg.as_ref());
+          msg = msg.make_replacement(meta);
         } else if let Some(replied_msg) = replied_msg {
           msg = msg.make_reply_to(
             &replied_msg, ForwardThread::Yes, AddMentions::Yes,
