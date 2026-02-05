@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-pub fn name_from_url(url: &url::Url) -> Cow<str> {
+pub fn name_from_url(url: &url::Url) -> Cow<'_, str> {
   if let Some(url::Host::Domain(host)) = url.host() {
     if let Some(d) = psl::domain(host.as_bytes()) {
       let whole = d.as_bytes();
