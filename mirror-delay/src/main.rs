@@ -56,7 +56,6 @@ async fn do_work(to: Duration, pool: &postgres::PgPool) {
 }
 
 fn main() {
-  nyquest_preset::register();
   let rt = tokio::runtime::Builder::new_current_thread()
     .enable_all()
     .build()
