@@ -4,23 +4,35 @@
 <title>安全检查</title>
 <meta charset=utf-8>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src='https://www.recaptcha.net/recaptcha/api.js'></script>
+<meta name="color-scheme" content="light dark" />
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+<style type="text/css">
+<!--
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: black;
+    color: white;
+  }
+}
+-->
+</style>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?compat=recaptcha" async defer></script>
 <script type="text/javascript">
 async function check_response(token) {
   const r = await fetch('/__verify', {
     body: token,
     method: 'POST',
-  })
-  const j = await r.json()
+  });
+  const j = await r.json();
   if(j.status == 'ok') {
-    let params = new URL(document.location).searchParams
-    let url = params.get('url') || '/'
+    let params = new URL(document.location).searchParams;
+    let url = params.get('url') || '/';
     if(url.indexOf('/') !== 0) {
-      url = '/'
+      url = '/';
     }
-    location.replace(url)
+    location.replace(url);
   } else {
-    location.reload()
+    location.reload();
   }
 }
 </script>
@@ -28,7 +40,8 @@ async function check_response(token) {
 <body>
 <h1>安全检查</h1>
 <p>为了本站能有良好的用户体验，访问前请先完成以下检查：</p>
-<div class="g-recaptcha" data-sitekey="6LcvatUpAAAAAITQvPIk8zsJgY3YccveOEYMgPyr" data-callback="check_response"></div>
-<p>如检查控件无法加载，请确保你能够访问 <a href="https://www.recaptcha.net">https://www.recaptcha.net</a>；可尝试更换DNS服务器。</p>
+
+<div class="g-recaptcha" data-sitekey="0x4AAAAAADO4-k0hdr0wNCC3" data-callback="check_response"></div>
+<p><small>你需要使用较新的浏览器并启用JavaScript和cookies才能通过验证。</small></p>
 </body>
 </html>

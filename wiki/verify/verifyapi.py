@@ -30,7 +30,7 @@ class VerifyHandler(tornado.web.RequestHandler):
       ("response", token),
     ]
     res = await httpclient.fetch(
-      'https://www.recaptcha.net/recaptcha/api/siteverify',
+      'https://challenges.cloudflare.com/turnstile/v0/siteverify',
       method = 'POST',
       body = urllib.parse.urlencode(recaptcha_req),
     )
