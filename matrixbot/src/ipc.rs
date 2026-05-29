@@ -91,7 +91,7 @@ async fn handle_msg(client: &Client, msg: &[u8]) -> Result<Option<ReturnMessage>
         let res = room.send(msg).await?;
         if return_id {
           return Ok(Some(ReturnMessage {
-            id: res.event_id,
+            id: res.response.event_id,
           }))
         }
       } else {

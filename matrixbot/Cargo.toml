@@ -6,8 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-matrix-sdk = { version = "*", default-features = false, features = ["eyre", "sqlite", "native-tls", "e2e-encryption"] }
-matrix-sdk-base = "*"
+matrix-sdk = { version = "*", features = ["eyre"] }
 
 serde = "*"
 serde_json = "*"

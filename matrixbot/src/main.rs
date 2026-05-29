@@ -4,8 +4,8 @@ use std::time::Duration;
 
 use matrix_sdk::{
   config::SyncSettings, ruma,
+  store::{StateStoreDataKey, StateStoreDataValue},
 };
-use matrix_sdk_base::store::{StateStoreDataKey, StateStoreDataValue};
 
 use clap::Parser;
 use tracing::info;
