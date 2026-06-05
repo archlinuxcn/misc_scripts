@@ -22,7 +22,7 @@ struct Mirror {
 }
 
 pub async fn do_work() -> eyre::Result<()> {
-  let r: Response = reqwest::get("https://archlinux.org/mirrors/status/json/").await?
+  let r: Response = nyquest::r#async::get("https://archlinux.org/mirrors/status/json/").await?
     .json().await?;
   let t = r.last_check.timestamp();
   let mirrors: Vec<_> = r.urls.into_iter().filter(|m|
