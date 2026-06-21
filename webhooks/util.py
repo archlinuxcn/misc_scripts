@@ -5,6 +5,8 @@ from typing import (
   NewType,
 )
 
+from .config import DEFAULT_REPO_NAME
+
 Maintainer = NewType('Maintainer', str)
 
 def annotate_maints(
@@ -65,3 +67,15 @@ OrphanResult.Removed = OrphanResult('Removed')
 OrphanResult.NotFound = OrphanResult('NotFound')
 OrphanResult._lit_created = True
 
+def split_repo_pkgbase(s: str) -> tuple[str, str]:
+  slashes = s.count('/')
+  if slashes == 1:
+    # repo/pkgbase
+    repo, pkgbase = s.split('/', 1)
+  elif slashes == 0:
+    repo = DEFAULT_REPO_NAME
+    pkgbase = s
+  else:
+    raise ValueError('bad package specifier')
+
+  return repo, pkgbase

@@ -1,27 +1,26 @@
 from __future__ import annotations
 
 import asyncio
-from typing import List
-import pathlib
 
 from lilac2.lilacyaml import (
   iter_pkgdir, load_lilac_yaml,
 )
 
-from .config import REPODIR
-from .util import Dependent, Maintainer
+from .config import REPOSDIR
+from .util import Dependent, Maintainer, split_repo_pkgbase
 
 async def find_maintainers(
   pkgbase: str,
-) -> List[Maintainer]:
+) -> list[Maintainer]:
   loop = asyncio.get_running_loop()
   return await loop.run_in_executor(
     None, find_maintainers_sync, pkgbase)
 
 def find_maintainers_sync(
-  pkgbase: str,
-) -> List[Maintainer]:
-  ly = load_lilac_yaml(REPODIR / pkgbase)
+  pkg: str,
+) -> list[Maintainer]:
+  repo, pkgbase = split_repo_pkgbase(pkg)
+  ly = load_lilac_yaml(REPOSDIR / repo / pkgbase)
   return [
     x['github'] for x in
     ly.get('maintainers', ())
@@ -30,26 +29,26 @@ def find_maintainers_sync(
 
 async def find_dependent_packages(
   pkgbase: str,
-) -> List[str]:
+) -> list[str]:
   loop = asyncio.get_running_loop()
   dependents = await loop.run_in_executor(
-    None, find_dependent_packages_ext, REPODIR, pkgbase)
+    None, find_dependent_packages_ext, pkgbase)
   return [x.pkgbase for x in dependents]
 
 async def find_dependent_packages_ext_async(
   pkgbase: str,
-) -> List[Dependent]:
+) -> list[Dependent]:
   loop = asyncio.get_running_loop()
   dependents = await loop.run_in_executor(
-    None, find_dependent_packages_ext, REPODIR, pkgbase)
+    None, find_dependent_packages_ext, pkgbase)
   return dependents
 
 def find_dependent_packages_ext(
-  repo: pathlib.Path,
   target: str,
-) -> List[Dependent]:
+) -> list[Dependent]:
   ret = []
-  for x in iter_pkgdir(repo):
+  repo, pkgbase = split_repo_pkgbase(target)
+  for x in iter_pkgdir(REPOSDIR / repo):
     try:
       ly = load_lilac_yaml(x)
     except Exception:

@@ -13,7 +13,7 @@ from agithub import (
 
 from . import config
 from . import lilac
-from .util import annotate_maints, Maintainer
+from .util import annotate_maints, Maintainer, split_repo_pkgbase
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ _TypeDescMap = {
   '其它': IssueType.Other,
 }
 
-_PkgPattern = re.compile(r'\w[\w.+-]*\w?')
+_PkgPattern = re.compile(r'\w[\w.+/-]*\w?')
 
 _CANT_PARSE_NEW = '''\
 Lilac cannot parse this issue. Did you follow the template? Please update and I'll reopen this.
@@ -88,13 +88,26 @@ def parse_issue_text(text: str) -> Tuple[Optional[IssueType], list[str]]:
   return issuetype, packages
 
 def map_pkgnames(pkgs: list[str]) -> list[str]:
-  try:
-    with open(config.REPODIR / 'pkgname_map.json') as f:
-      map = json.load(f)
-  except OSError:
-    return pkgs
+  repos_map: dict[str, dict[str, str]] = {}
+  ret = []
 
-  return [map.get(pkg, pkg) for pkg in pkgs]
+  for p in pkgs:
+    repo, pkgbase = split_repo_pkgbase(p)
+    m = repos_map.get(repo)
+    if m is None:
+      try:
+        with open(config.REPOSDIR / config.DEFAULT_REPO_NAME / 'pkgname_map.json') as f:
+          m = json.load(f)
+      except OSError:
+        m = {}
+      repos_map[repo] = m
+
+    if '/' in p:
+      ret.append(f'{repo}/{m.get(pkgbase, pkgbase)}')
+    else:
+      ret.append(p)
+
+  return ret
 
 async def find_affecting_deps(
   packages: list[str],

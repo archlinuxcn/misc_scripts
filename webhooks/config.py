@@ -8,7 +8,9 @@ ADMIN_GH = 'lilydjwg'
 
 REPO_URL = f'git@github.com:{REPO_NAME}.git'
 MYMAIL = 'lilac@build.archlinuxcn.org'
-REPODIR = Path('/data/archgitrepo-webhook/archlinuxcn').expanduser()
+REPOSDIR = Path('/data/archgitrepo-webhook').expanduser()
+DEFAULT_REPO_NAME = 'archlinuxcn'
+REPODIR = REPOSDIR / DEFAULT_REPO_NAME
 
 def gen_log_comment(pkgs: list[str]) -> str:
   ss = ['''\
