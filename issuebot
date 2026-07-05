@@ -69,10 +69,10 @@ This request has been waiting for its maintainer for too long, closing.''')
 
 def process_one_orphaned(
   name: str,
-  all_orphans: List[str],
+  all_orphans: list[str],
 ) -> OrphanResult:
   p = REPO / name
-  dependents = lilac.find_dependent_packages_ext(REPO, name)
+  dependents = lilac.find_dependent_packages_ext(name)
   # FIXME: don't remove if d.pkgbase is to be orphaned but not removed
   dependents = [d for d in dependents if d.pkgbase not in all_orphans]
   if dependents:
