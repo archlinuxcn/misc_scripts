@@ -56,13 +56,21 @@ def buildinfo_matches(pkg: Path, dep_pkgname: str, dep_pkgver: Optional[str]) ->
     return None
 
   has_dep = False
+  if dep_pkgver is not None:
+    if '-' in dep_pkgver:
+      dep_pkgver, dep_pkgrel = dep_pkgver.split('-')
+    else:
+      dep_pkgrel = None
+  else:
+    dep_pkgrel = None
   for parts in iter_installed(buildinfo):
     if len(parts) != 4:
       logger.warning('Old .BUILDINFO format - entry %s found in %s; checking anyway', '-'.join(parts), pkg)
       has_dep = True
       break
-    pkgname, pkgver, _, _ = parts
-    if pkgname == dep_pkgname and (dep_pkgver is None or dep_pkgver == pkgver):
+    pkgname, pkgver, pkgrel, _ = parts
+    if pkgname == dep_pkgname and (dep_pkgver is None or dep_pkgver == pkgver) \
+       and (dep_pkgrel is None or dep_pkgrel == pkgrel):
       has_dep = True
       break
   if not has_dep:
@@ -154,13 +162,23 @@ class LibChecker(Checker):
     print('%s: %s (%s)' % (name, *r))
 
 class PkgverChecker(Checker):
-  def __init__(self, dep_pkgname: str, dep_pkgver: str) -> None:
+  def __init__(
+    self, dep_pkgname: str, dep_pkgver: str,
+    libname: str | None = None,
+  ) -> None:
     self.dep_pkgname = dep_pkgname
     self.dep_pkgver = dep_pkgver
+    if libname:
+      self.lib_re = re.compile(libname)
+    else:
+      self.lib_re = None
 
   def check(self, pkg: Path) -> Optional[bool]:
     if buildinfo_matches(pkg, self.dep_pkgname, self.dep_pkgver) is True:
-      return True
+      if self.lib_re:
+        return check_package_so(pkg, self.lib_re)
+      else:
+        return True
     return None
 
   def output(self, name: str, _r: bool) -> None:
@@ -185,7 +203,9 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   checker: Checker
-  if args.libname:
+  if args.libname and args.dep_pkgver:
+    checker = PkgverChecker(args.dep_pkgname, args.dep_pkgver, args.libname)
+  elif args.libname:
     checker = LibChecker(args.libname, args.dep_pkgname)
   elif args.dep_pkgver:
     checker = PkgverChecker(args.dep_pkgname, args.dep_pkgver)
