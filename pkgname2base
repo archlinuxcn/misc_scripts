@@ -1,0 +1,14 @@
+#!/usr/bin/python3
+
+import sys
+
+from webhooks.issue import map_pkgnames
+
+def main():
+  pkgs = sys.stdin.read().split()
+  out = map_pkgnames(pkgs)
+  for p in out:
+    print(p)
+
+if __name__ == '__main__':
+  main()

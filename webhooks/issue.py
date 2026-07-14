@@ -105,7 +105,7 @@ def map_pkgnames(pkgs: list[str]) -> list[str]:
     if '/' in p:
       ret.append(f'{repo}/{m.get(pkgbase, pkgbase)}')
     else:
-      ret.append(p)
+      ret.append(m.get(pkgbase, pkgbase))
 
   return ret
 
