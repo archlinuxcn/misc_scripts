@@ -8,7 +8,7 @@ use matrix_sdk::{
 };
 
 use clap::Parser;
-use tracing::info;
+use tracing::{info, error};
 
 use matrixutils::login;
 use matrixutils::verification;
@@ -85,7 +85,10 @@ async fn async_main(args: Args) -> Result<()> {
     ipc::enable(client.clone(), path)?;
   }
 
-  client.sync(sync_settings).await?;
-
-  Ok(())
+  loop {
+    if let Err(e) = client.sync(sync_settings.clone()).await {
+      error!(error=%e, "sync error");
+      tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+  }
 }
