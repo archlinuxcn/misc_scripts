@@ -87,7 +87,7 @@ async fn async_main(args: Args) -> Result<()> {
 
   loop {
     if let Err(e) = client.sync(sync_settings.clone()).await {
-      error!(error=%e, "sync error");
+      error!(error=?e, "sync error");
       tokio::time::sleep(Duration::from_secs(1)).await;
     }
   }
