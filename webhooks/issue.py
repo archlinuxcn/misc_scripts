@@ -64,7 +64,7 @@ def parse_issue_text(text: str) -> Tuple[Optional[IssueType], list[str]]:
     elif line.startswith('### 受影响的软件包 '):
       st = _ParseState.packages
       continue
-    elif line.startswith('----'):
+    elif line.startswith('---'):
       break
 
     if st == _ParseState.issuetype:
