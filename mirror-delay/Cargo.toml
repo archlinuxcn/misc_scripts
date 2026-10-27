@@ -20,3 +20,4 @@ serde_json = "*"
 sqlx = { version = "*", default-features = false, features = ["postgres", "runtime-tokio"] }
 tokio = { version = "*", features = ["rt", "time", "net"] }
 url = { version = "*", features = ["serde"] }
+whoami = { version = "*", default-features = false, features = ["std"] }
